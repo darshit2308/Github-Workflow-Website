@@ -10,26 +10,7 @@ import { TimelineSection } from "@/components/TimelineSection";
 import { QuestionGrid } from "@/components/QuestionGrid";
 import { Footer } from "@/components/Footer";
 
-export const Route = createFileRoute("/")(  {
-  head: () => ({
-    meta: [
-      { title: "Darshit Khandelwal — LFDT Mentorship 2026 | Hiero Workflow App" },
-      {
-        name: "description",
-        content:
-          "Interactive portfolio for Darshit Khandelwal's LFDT Mentorship 2026 application — Hiero GitHub Workflow App (Issue #73). Architecture, contributions, prototypes, and pre-interview task answers.",
-      },
-      {
-        property: "og:title",
-        content: "Darshit Khandelwal — LFDT Mentorship 2026",
-      },
-      {
-        property: "og:description",
-        content:
-          "Architecture-first approach to centralising Hiero's automation workflows. 13+ merged PRs, 2 working prototypes, 5-page arc42 plan.",
-      },
-    ],
-  }),
+export const Route = createFileRoute("/")({
   component: Index,
 });
 
