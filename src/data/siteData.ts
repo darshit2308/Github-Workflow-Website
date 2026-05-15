@@ -12,10 +12,10 @@ export const SITE = {
   mentor: "Sophie Bulloch (exploreriii)",
   // Updated to the new full architecture document
   archPlanPdf: "/documents/full-architecture.pdf",
+  fivePagePdf: "/documents/Hiero_Shared_SDK_Automations_Architecture_Plan_5_Page.pdf",
   applicationPdf: "/documents/sophie.pdf",
   taskSolutionPdf: "/documents/taskSolution.pdf",
   preInterviewTaskPdf: "/documents/Pre-Interview Task - Hiero Workflow App (1).pdf",
-  finalPdf: "/documents/final (2).pdf",
 };
 
 // ── Hero stats ──────────────────────────────────────────────

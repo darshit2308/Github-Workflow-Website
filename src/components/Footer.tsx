@@ -44,8 +44,8 @@ export function Footer() {
             </div>
             <ul className="mt-3 space-y-2.5">
               <li>{link(SITE.applicationPdf, "Full mentorship application")}</li>
-              <li>{link(SITE.archPlanPdf, "5-page architecture plan")}</li>
-              <li>{link(SITE.finalPdf, "Comprehensive detailed plan")}</li>
+              <li>{link(SITE.archPlanPdf, "Comprehensive detailed architecture plan")}</li>
+              <li>{link(SITE.fivePagePdf, "5-page architecture plan")}</li>
               <li>{link(SITE.taskSolutionPdf, "Pre-interview task solution")}</li>
               <li>{link(SITE.issueUrl, "Issue #73 — LFDT Mentorship")}</li>
             </ul>

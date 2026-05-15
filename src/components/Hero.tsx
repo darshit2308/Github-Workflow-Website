@@ -104,19 +104,28 @@ export function Hero() {
             href={SITE.archPlanPdf}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl border border-surface-border bg-white/80 px-6 py-3 text-sm font-semibold text-hiero-navy shadow-card backdrop-blur-sm transition-smooth hover:shadow-card-hover hover:border-hiero-blue/30"
-          >
-            <ExternalLink size={16} />
-            Full Architecture
-          </a>
-          <a
-            href={SITE.finalPdf}
-            target="_blank"
-            rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-xl border border-hiero-blue/30 bg-blue-50/80 px-6 py-3 text-sm font-semibold text-hiero-blue shadow-card backdrop-blur-sm transition-smooth hover:shadow-card-hover hover:bg-blue-100/80"
           >
             <FileText size={16} />
-            Migration Plan
+            Comprehensive Detailed Plan
+          </a>
+          <a
+            href={SITE.fivePagePdf}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl border border-surface-border bg-white/80 px-6 py-3 text-sm font-semibold text-hiero-navy shadow-card backdrop-blur-sm transition-smooth hover:shadow-card-hover hover:border-hiero-blue/30"
+          >
+            <ExternalLink size={16} />
+            5-Page Architecture Plan
+          </a>
+          <a
+            href={SITE.taskSolutionPdf}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl border border-surface-border bg-white/80 px-6 py-3 text-sm font-semibold text-hiero-navy shadow-card backdrop-blur-sm transition-smooth hover:shadow-card-hover hover:border-hiero-blue/30"
+          >
+            <FileText size={16} />
+            Pre-Interview Task
           </a>
         </div>
 
