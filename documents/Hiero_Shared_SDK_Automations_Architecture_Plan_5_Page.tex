@@ -1,0 +1,512 @@
+% ============================================================
+%  Hiero Shared SDK Automations — Architecture Plan
+%  Five-page architecture document | arc42-compliant
+%  Draft for Sophie/explorer3 review | May 2026
+% ============================================================
+\documentclass[10pt, a4paper]{article}
+
+% ── Packages ────────────────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{titling}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{parskip}
+\usepackage{fancyhdr}
+\usepackage{mdframed}
+\usepackage{etoolbox}
+
+% ── Colour palette ──────────────────────────────────────────
+\definecolor{hieroBlue}{HTML}{1A3A5C}
+\definecolor{hieroAccent}{HTML}{2E75B6}
+\definecolor{hieroLight}{HTML}{EAF2FB}
+\definecolor{hieroGray}{HTML}{5A5A5A}
+\definecolor{hieroRule}{HTML}{CCCCCC}
+\definecolor{noteYellow}{HTML}{FFF8DC}
+\definecolor{noteYellowBorder}{HTML}{C8A000}
+
+% ── Hyperref setup ──────────────────────────────────────────
+\hypersetup{
+  colorlinks  = true,
+  linkcolor   = hieroAccent,
+  urlcolor    = hieroAccent,
+  citecolor   = hieroAccent,
+  pdftitle    = {Hiero Shared SDK Automations — Architecture Plan},
+  pdfauthor   = {Draft for Sophie/explorer3},
+}
+
+% ── Section title styling ───────────────────────────────────
+\titleformat{\section}
+  {\large\bfseries\color{hieroBlue}}
+  {\thesection}{1em}{}[\vspace{-2pt}\color{hieroRule}\rule{\linewidth}{0.4pt}]
+
+\titleformat{\subsection}
+  {\normalsize\bfseries\color{hieroBlue}}
+  {\thesubsection}{1em}{}
+
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\color{hieroGray}}
+  {\thesubsubsection}{1em}{}
+
+\titlespacing*{\section}{0pt}{13pt}{6pt}
+\titlespacing*{\subsection}{0pt}{7pt}{3pt}
+
+% ── Header / footer ─────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[L]{\small\color{hieroGray}\textit{Hiero Shared SDK Automations — Architecture Plan}}
+\fancyhead[R]{\small\color{hieroGray}May 2026}
+\fancyfoot[C]{\small\color{hieroGray}\thepage}
+
+% ── Table helpers ───────────────────────────────────────────
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+
+% ── Note box ────────────────────────────────────────────────
+\newmdenv[
+  backgroundcolor = noteYellow,
+  linecolor       = noteYellowBorder,
+  linewidth       = 0.8pt,
+  leftmargin      = 0pt,
+  rightmargin     = 0pt,
+  innerleftmargin = 10pt,
+  innerrightmargin= 10pt,
+  innertopmargin  = 8pt,
+  innerbottommargin=8pt,
+  skipabove       = 8pt,
+  skipbelow       = 8pt,
+]{notebox}
+
+% ── List style ──────────────────────────────────────────────
+\setlist[itemize]{leftmargin=1.5em, itemsep=1.2pt, topsep=2.5pt}
+\setlist[enumerate]{leftmargin=1.5em, itemsep=1.2pt, topsep=2.5pt}
+
+% ── Compact tables ──────────────────────────────────────────
+\AtBeginEnvironment{tabularx}{\small}
+\renewcommand{\arraystretch}{0.92}
+
+% ── No paragraph indent ─────────────────────────────────────
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+
+% ============================================================
+\begin{document}
+% ============================================================
+
+% ── Title block ─────────────────────────────────────────────
+\begin{center}
+  {\LARGE\bfseries\color{hieroBlue} Hiero Shared SDK Automations}\\[6pt]
+  {\large\color{hieroGray} Five-Page Architecture Plan}\\[4pt]
+  {\small\color{hieroGray}
+    arc42-compliant \quad|\quad
+    Microkernel pattern \quad|\quad
+    Draft for Sophie\,/\,explorer3 review \quad|\quad
+    May 2026
+  }
+\end{center}
+
+\vspace{4pt}
+\color{hieroRule}\hrule\color{black}
+\vspace{6pt}
+
+\begin{notebox}
+  \textbf{Core principle:} centralise reusable automation decision logic, not repository control.
+
+  \textbf{Architecture pattern:} Microkernel Architecture (Richards, 2015). The core automation
+  kernel resides in \texttt{packages/core}; GitHub Actions and Probot are delivery adapters.
+
+  \textbf{arc42 coverage:} Sections 1-12 are addressed in this five-page plan. C4 views are
+  included for L1 (Context), L2 (Container), and L3 (Component).
+\end{notebox}
+
+This document is intentionally architecture-first and follows the arc42 structure. C4 L1 is
+shown as a diagram; L2 and L3 are text views. A separate migration strategy follows from this
+architecture and is intentionally out of scope here.
+
+% ============================================================
+\section{Introduction and Goals}
+% ============================================================
+
+Hiero Shared SDK Automations provides a shared automation decision core while preserving SDK
+repository autonomy over workflow triggers, permissions, and security controls. The audience is
+SDK maintainers, automation contributors, and reviewers who need a concise, reviewable baseline.
+
+\subsection{Top goals (quality drivers)}
+
+\begin{itemize}[itemsep=0.6pt, topsep=2pt]
+  \item Security: shared logic must not hide permissions, tokens, or runner hardening.
+  \item Maintainability: fix automation logic once and adopt deliberately across SDKs.
+  \item Evolvability: enable Actions now and Probot later without duplicating behavior.
+  \item Testability: prove parity before write mode through fixtures and comparisons.
+  \item Adoptability: each SDK adopts incrementally and can roll back by SHA.
+\end{itemize}
+
+\subsection{Stakeholders and expectations}
+
+\begin{tabularx}{\linewidth}{@{} L{4cm} X @{}}
+  \toprule
+  \textbf{Stakeholder} & \textbf{Expectation} \\
+  \midrule
+  SDK maintainers
+    & Keep governance and policy control, approve rollout timing, and retain security gates. \\[4pt]
+  SDK repositories
+    & Keep workflow YAML, permissions, checkout, concurrency, harden-runner, and local config. \\[4pt]
+  \texttt{sdk-automations}
+    & Provide shared core logic, adapters, schemas, releases, fixtures, and examples. \\[4pt]
+  GitHub Actions
+    & Execute SDK-owned workflows that call central actions by pinned references. \\[4pt]
+  Future GitHub App / Probot
+    & Later orchestration path that reuses the same core without a second implementation. \\
+  \bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Constraints}
+% ============================================================
+
+\begin{itemize}
+  \item GitHub Actions is the current execution environment; workflows remain in SDK repos.
+  \item SDK repos retain security controls: permissions, harden-runner, checkout, concurrency.
+  \item Central repo must be org-owned and governed before production dependency.
+  \item Repo policy config is protected and must remain local to each SDK.
+  \item No privileged tokens or escalated permissions originate from the shared core.
+  \item Cross-SDK behavior differences require parity tests before write mode.
+\end{itemize}
+
+% ============================================================
+\section{Context and Scope}
+% ============================================================
+
+The architecture boundary is deliberate: SDK repositories remain the security and governance
+boundary, while \texttt{sdk-automations} becomes the shared implementation boundary for reusable
+automation logic.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{image.png}
+  \caption{C4 L1 context view for shared SDK automations (Excalidraw).}
+\end{figure}
+
+\textbf{Phase 0 proof:} a \href{https://github.com/darshit2308/hiero-sdk-python/actions/runs/25763950499/job/75671903429}{Python fork canary run} validated the end-to-end call path while keeping
+workflow boundaries local and applying expected review labels.
+
+\subsection{Scope}
+
+\textbf{In scope:}
+\begin{itemize}
+  \item Shared automation decision logic, schemas, fixtures, and adapters.
+  \item SDK-owned workflows and protected repo policy configuration.
+  \item Incremental adoption by SDKs with rollback by pinned SHA.
+\end{itemize}
+
+\begin{notebox}
+  \textbf{Out of scope:} removing all SDK workflows, bypassing maintainer approval, moving
+  privileged policy into a personal fork, or forcing C++ workflows onto an unproven wrapper.
+\end{notebox}
+
+% ============================================================
+\section{Solution Strategy}
+% ============================================================
+
+Adopt a shared-core with ports-and-adapters architecture aligned to the Microkernel pattern. The
+core houses reusable automation decisions, while adapters map runtime inputs from GitHub Actions
+and (later) Probot to the same core API. GitHub events trigger the system, but the architecture is
+not a hosted microservice first; it is a modular automation kernel with thin delivery adapters.
+
+\subsection{Microkernel pattern fit}
+
+\begin{tabularx}{\linewidth}{@{} L{3.2cm} L{2.2cm} X @{}}
+  \toprule
+  \textbf{Attribute} & \textbf{Expected fit} & \textbf{Rationale for this system} \\
+  \midrule
+  Agility
+    & High
+    & New or changing automations are plug-ins in the core without rewriting runtimes. \\[4pt]
+  Testability
+    & High
+    & Core logic is isolated and verified with fixtures and parity tests. \\[4pt]
+  Deployability
+    & High
+    & Adapters and actions are versioned and pinned independently per SDK. \\[4pt]
+  Scalability
+    & Medium-Low
+    & Workload is bounded by SDK events, not high-throughput service traffic. \\[4pt]
+  Simplicity
+    & Medium
+    & Clear core/adapter boundaries reduce duplication but require adapter discipline. \\
+  \bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Building Block View}
+% ============================================================
+
+\subsection{C4 L2 - Container view (text)}
+
+\begin{tabularx}{\linewidth}{@{} L{4.2cm} X @{}}
+  \toprule
+  \textbf{Container} & \textbf{Responsibility and interaction} \\
+  \midrule
+  SDK repositories
+    & Own workflows, policy config, triggers, and permissions; call shared actions. \\[4pt]
+  \texttt{sdk-automations} repo
+    & Hosts core logic, adapters, schemas, actions, fixtures, and releases. \\[4pt]
+  GitHub Actions runtime
+    & Executes SDK workflows and runs shared actions. \\[4pt]
+  Future GitHub App / Probot
+    & Alternative runtime that calls the same core API. \\[4pt]
+  GitHub API
+    & External system for comments, labels, assignments, and PR metadata. \\
+  \bottomrule
+\end{tabularx}
+
+\subsection{C4 L3 - Component view (text)}
+
+\begin{tabularx}{\linewidth}{@{} L{4.7cm} X @{}}
+  \toprule
+  \textbf{Component} & \textbf{Role} \\
+  \midrule
+  \texttt{packages/core}
+    & Automation decision kernel, pure logic, no runtime-specific I/O. \\[4pt]
+  \texttt{packages/github-action-\allowbreak adapter}
+    & Validates inputs, loads config, maps Action runtime to core calls. \\[4pt]
+  \texttt{packages/probot-app}
+    & Maps webhook events to the same core interface used by Actions. \\[4pt]
+  \texttt{actions/review-sync}
+    & Thin action entrypoint that calls the Action adapter. \\[4pt]
+  \texttt{schemas} and fixtures
+    & Shared config schema, validation, and parity test fixtures. \\
+  \bottomrule
+\end{tabularx}
+
+\subsection{Three-bucket classification}
+
+\begin{tabularx}{\linewidth}{@{} L{3.5cm} L{5cm} X @{}}
+  \toprule
+  \textbf{Bucket} & \textbf{Examples} & \textbf{Rule} \\
+  \midrule
+  Shared core candidate
+    & Review-sync decisions, assignment eligibility, PR check rules, comment builders,
+      label transition decisions, fixtures, parity tests, PR priority scoring
+      (issue label -> weight + age factor).
+    & Move here when behavior is common or intentionally configurable across SDKs. \\[6pt]
+  Repo-local boundary
+    & Workflow triggers, permissions, checkout, harden-runner, concurrency,
+      artifact download / upload, token choice.
+    & Keep local because these are security and operational controls. \\[6pt]
+  Repo-specific policy
+    & Maintainer team, label names, documentation links, assignment limits,
+      support channels.
+    & Keep as protected local config validated by the central schema. \\
+  \bottomrule
+\end{tabularx}
+
+\subsection{Candidate repository shape}
+
+The candidate central repository should expose the following components:
+
+\begin{itemize}
+  \item \texttt{packages/core}
+  \item \texttt{packages/github-action-adapter}
+  \item \texttt{packages/probot-app}
+  \item \texttt{actions/review-sync}
+  \item \texttt{actions/run-automation}
+  \item \texttt{schemas}
+  \item \texttt{docs}
+  \item \texttt{examples}
+  \item \texttt{CI}
+\end{itemize}
+
+Personal fork links are proof artifacts only; upstream SDKs should depend only on an approved
+org-owned repository with maintainers and release governance.
+
+% ============================================================
+\section{Runtime View}
+% ============================================================
+
+\subsection{GitHub Actions runtime}
+
+\begin{enumerate}
+  \item The SDK workflow starts from its own trigger, permissions, concurrency,
+        and maintainer-approved YAML.
+  \item The job keeps \texttt{step-security/harden-runner} visible near the start of the job
+        and checks out only what the job is allowed to use.
+  \item The workflow loads protected repo config from the trusted branch and calls
+        the shared action by a reviewed immutable reference.
+  \item The Action adapter validates inputs and config, then calls \texttt{packages/core}
+        for the automation decision.
+  \item The core returns dry-run output or performs allowed writes through the GitHub API,
+        depending on the approved workflow mode.
+\end{enumerate}
+
+\subsection{Probot runtime}
+
+\begin{enumerate}
+  \item A future GitHub App receives the webhook and authenticates as the app installation.
+  \item The Probot adapter maps the event into the same core function shape used by Actions.
+  \item The core produces the same comments, labels, assignment decisions, and safety checks.
+\end{enumerate}
+
+% ============================================================
+\section{Deployment View}
+% ============================================================
+
+\begin{itemize}
+  \item Production callers should pin central actions and third-party actions to
+        full-length commit SHAs, using tags only as human-readable release labels.
+  \item The central repo must move under the approved official owner before upstream
+        SDK production dependency.
+  \item Branch protection, CODEOWNERS, release owners, changelog, rollback instructions,
+        and incident ownership are part of initial governance, not optional extras.
+  \item Repo config is privileged policy and must require protected-branch review because
+        changing config changes automation behavior.
+\end{itemize}
+
+\textbf{Migration sequence implied by this architecture:}
+\begin{itemize}
+  \item Phase 0 (complete): Python fork canary proves the caller contract.
+  \item Phase 1: Stabilize central repo governance before any upstream dependency.
+  \item Phase 2: Python review-sync dry-run pilot upstream (no existing workflow replaced).
+  \item Phase 3: Controlled write pilot with named owner and rollback SLA.
+  \item Phase 4+: Assignment mapping, then C++ canary, then wider SDK rollout.
+\end{itemize}
+
+% ============================================================
+\section{Crosscutting Concepts}
+% ============================================================
+
+\begin{itemize}
+    \item \textbf{Security:} workflow YAML remains local, permissions are explicit, and harden-runner
+        stays visible in SDK workflows.
+    \item \textbf{Configuration:} per-SDK policy config is validated by shared schemas.
+    \item \textbf{Testing:} fixtures and parity tests validate core decisions against existing behavior.
+    \item \textbf{Observability:} consistent logs and dry-run outputs for reviewers and maintainers.
+    \item \textbf{Versioning:} SDKs pin SHAs and can roll back by reverting a single caller change.
+\end{itemize}
+
+% ============================================================
+\section{Architectural Decisions}
+% ============================================================
+
+\begin{itemize}
+  \item \textbf{Microkernel pattern}: the shared core is the automation kernel, adapters are plug-ins.
+  \item \textbf{Actions-first, Probot-ready}: use GitHub Actions for early pilots; the
+        ports-and-adapters split keeps \texttt{packages/core} stable as runtimes change, so a
+        Probot adapter maps webhook events to the same function signatures without core rewrites.
+  \item \textbf{Do not centralise workflow YAML}: centralise logic only where duplication creates
+        real maintenance cost.
+  \item \textbf{Python review-sync first}: start with lower-risk automation already proven in a
+        shared-action form.
+  \item \textbf{Assignment logic deferred}: wait for a Python/C++ behavior map before extraction.
+\end{itemize}
+
+The migration strategy is documented separately and derived from this architecture.
+
+% ============================================================
+\section{Quality Requirements}
+% ============================================================
+
+\begin{tabularx}{\linewidth}{@{} L{3.5cm} X @{}}
+  \toprule
+  \textbf{Quality goal} & \textbf{Scenario or test} \\
+  \midrule
+  Security
+    & A contributor-facing workflow can call the shared action without hiding harden-runner,
+      expanding token permissions unexpectedly, or checking out untrusted PR code in a
+      privileged job. \\[6pt]
+  Maintainability
+    & A bug fix in shared review-sync or assignment logic is tested once in
+      \texttt{packages/core} and released once for SDK repos to adopt deliberately. \\[6pt]
+  Evolvability
+    & A future Probot / GitHub App adapter can call the same core functions without a
+      second implementation of assignment or PR checks. \\[6pt]
+  Testability
+    & Before write mode, golden fixtures and behavior parity tests prove equivalence with
+      existing SDK behavior, not only human dry-run log review. \\[6pt]
+  Adoptability
+    & Each SDK can adopt one automation at a time, keep local policy, and roll back by
+      reverting one caller change or pinning an older approved SHA. \\
+  \bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Risks and Technical Debt}
+% ============================================================
+
+\begin{tabularx}{\linewidth}{@{} L{4.2cm} X @{}}
+  \toprule
+  \textbf{Risk or debt} & \textbf{Mitigation or note} \\
+  \midrule
+  Shared core defect impacts multiple SDKs
+    & Pin versions, stage rollout, and roll back by SHA; keep parity tests green. \\[4pt]
+  Behavior drift between SDKs
+    & Maintain behavior maps, per-SDK fixtures, and strict schema validation. \\[4pt]
+  Central repo governance delayed
+    & Keep local automations active and treat shared core as internal until approved. \\[4pt]
+  Security regression from hidden permissions
+    & Keep workflow YAML local and require security review for any permission change. \\[4pt]
+  C++ wrapper constraints unknown
+    & Keep C++ workflows local until a proven wrapper and parity results exist. \\
+  \bottomrule
+\end{tabularx}
+
+% ============================================================
+\section{Glossary}
+% ============================================================
+
+\begin{tabularx}{\linewidth}{@{} L{3.5cm} X @{}}
+  \toprule
+  \textbf{Term} & \textbf{Meaning} \\
+  \midrule
+  \texttt{sdk-automations}
+    & Central repository hosting shared automation logic and adapters. \\[4pt]
+  \texttt{packages/core}
+    & Automation decision kernel, runtime-agnostic logic. \\[4pt]
+  Adapter
+    & Thin layer that maps runtime inputs to the core interface. \\[4pt]
+  harden-runner
+    & StepSecurity action that hardens GitHub Actions runners. \\[4pt]
+  dry-run mode
+    & Non-writing execution that outputs intended actions for review. \\[4pt]
+  parity tests
+    & Tests that compare core outputs against existing SDK behavior. \\[4pt]
+  review-sync
+    & Automation that synchronizes review state, labels, or comments. \\
+  \bottomrule
+\end{tabularx}
+
+% ============================================================
+\section*{References}
+% ============================================================
+
+\begin{itemize}
+  \item arc42 overview: \url{https://arc42.org/overview}
+
+  \item Architecture documentation guide and C4 framing:\\
+        \url{https://www.workingsoftware.dev/software-architecture-documentation-the-ultimate-guide/}
+
+  \item Richards, Mark. \textit{Software Architecture Patterns}. O'Reilly, 2015.
+
+  \item GitHub Actions secure use reference:\\
+        \url{https://docs.github.com/en/actions/reference/security/secure-use}
+
+  % \item GitHub \texttt{pull\_request\_target} warning:\\
+  %       \url{https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows}
+
+  \item StepSecurity Harden-Runner docs: \url{https://docs.stepsecurity.io/harden-runner}
+\end{itemize}
+
+% ============================================================
+\end{document}
+% ============================================================
