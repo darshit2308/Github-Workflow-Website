@@ -15,14 +15,14 @@ export function PrototypesSection() {
       <div className="mx-auto max-w-[1060px]">
         <div className="text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-surface-border bg-white/60 px-4 py-1.5 text-[0.75rem] font-semibold tracking-[0.15em] text-hiero-blue uppercase backdrop-blur-sm">
-            Exploratory Research
+            Phase Validation Proofs
           </div>
           <h2 className="mt-5 font-serif text-[1.75rem] text-hiero-navy sm:text-[2.2rem]">
             Working Prototypes & Achievements
           </h2>
           <p className="mx-auto mt-4 max-w-[620px] text-[1rem] leading-relaxed text-text-secondary">
-            Two GitHub App prototypes validate core mechanics. Both have recorded demo
-            videos proving the architecture works.
+            These two prototypes are not the product. They are <strong>proof of concept validations</strong> that prove specific
+            pipeline mechanics work before the production app shell is built.
           </p>
         </div>
 
@@ -75,11 +75,23 @@ function PrototypeCard({
     <div ref={ref} className="reveal rounded-2xl border border-surface-border bg-white shadow-card overflow-hidden">
       {/* Header */}
       <div className="border-b border-surface-border bg-surface-subtle p-5">
-        <div className="text-[0.75rem] font-semibold text-hiero-blue uppercase tracking-wider">{p.focus}</div>
-        <h3 className="mt-1 text-[1.1rem] font-bold text-hiero-navy">{p.name}</h3>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="rounded-full bg-hiero-blue/10 px-2 py-0.5 text-[0.72rem] font-bold uppercase tracking-wider text-hiero-blue">
+            {p.focus}
+          </span>
+        </div>
+        <h3 className="mt-2 text-[1.1rem] font-bold text-hiero-navy">{p.name}</h3>
       </div>
 
       <div className="p-5">
+        {/* Pipeline proof callout */}
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/50 p-3">
+          <div className="text-[0.7rem] font-bold uppercase tracking-wider text-blue-700 mb-1">
+            What This Proves
+          </div>
+          <p className="text-[0.82rem] leading-relaxed text-blue-900">{p.pipelineProof}</p>
+        </div>
+
         <p className="text-[0.88rem] leading-relaxed text-text-secondary">{p.description}</p>
 
         {/* Features */}

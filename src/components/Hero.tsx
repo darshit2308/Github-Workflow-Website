@@ -50,7 +50,7 @@ export function Hero() {
           className="anim-fade-up mt-4 font-serif text-[1.15rem] text-text-secondary italic sm:text-[1.35rem]"
           style={{ animationDelay: "140ms" }}
         >
-          Hiero: GitHub Workflow App · Issue #73
+          Hiero Workflow App — Architecture-First Strategy · Issue #73
         </p>
 
         {/* Tagline */}
@@ -58,8 +58,8 @@ export function Hero() {
           className="anim-fade-up mt-6 max-w-[600px] text-[1rem] leading-relaxed font-light text-text-secondary sm:text-[1.1rem]"
           style={{ animationDelay: "200ms" }}
         >
-          Building a shared automation core for the Hiero ecosystem — centralising
-          decision logic while preserving SDK repository autonomy.
+          Building a GitHub App with a clean 8-stage event pipeline for the Hiero ecosystem —
+          architecture first, shell before modules, one product slice at a time.
         </p>
 
         {/* Stats row */}
@@ -107,7 +107,7 @@ export function Hero() {
             className="inline-flex items-center gap-2 rounded-xl border border-surface-border bg-white/80 px-6 py-3 text-sm font-semibold text-hiero-navy shadow-card backdrop-blur-sm transition-smooth hover:shadow-card-hover hover:border-hiero-blue/30"
           >
             <ExternalLink size={16} />
-            Architecture Plan
+            Full Architecture
           </a>
           <a
             href={SITE.finalPdf}
@@ -116,7 +116,7 @@ export function Hero() {
             className="inline-flex items-center gap-2 rounded-xl border border-hiero-blue/30 bg-blue-50/80 px-6 py-3 text-sm font-semibold text-hiero-blue shadow-card backdrop-blur-sm transition-smooth hover:shadow-card-hover hover:bg-blue-100/80"
           >
             <FileText size={16} />
-            Detailed Master Plan
+            Migration Plan
           </a>
         </div>
 

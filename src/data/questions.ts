@@ -40,43 +40,51 @@ export const QUESTIONS: Question[] = [
       { key: "R", value: 2 },
     ],
     pullQuote:
-      "Clear responsibility: SDK repos own triggers; the central repo owns reusable decisions.",
+      "One trust boundary at the listener. Modules are pure functions. Audit is first-class.",
     youtubeUrl: null,
     mermaid: `mindmap
-  root((Well-Architected Hiero))
-    Clear Responsibility
-      SDK repos own triggers and permissions
-      Central repo owns decision logic and schemas
-    Secure by Design
-      Least-privilege GITHUB_TOKEN
-      Pin actions by full SHA
-      Fail closed on invalid config
-    Low Coupling
-      packages/core is adapter-agnostic
-      Actions and Probot are thin adapters
-    Observable and Testable
-      Dry-run output
-      Golden fixtures
-      Parity tests before writes
-    Evolvable
-      Registry-based automation addition
-      Versioned config schema`,
+  root((Well-Architected Hiero App))
+    One Trust Boundary
+      HMAC-SHA256 at Webhook Listener
+      No module receives unverified payload
+      Fail closed on signature mismatch
+    Modules Are Pure
+      Policy modules return decisions only
+      No direct GitHub API calls from modules
+      Trivially unit-testable in isolation
+    Config Is Policy Not Code
+      Schema-validated hiero-automation.yml
+      Repositories express intent not behavior
+      Unknown high-risk fields fail closed
+    Executor Owns All Mutations
+      Single write path for idempotency
+      Delivery ID deduplication
+      Exponential back-off centrally enforced
+    Audit Is First-Class
+      Every event produces an audit record
+      Even no-op decisions are recorded
+      90-day append-only retention
+    Shell Before Modules
+      Pipeline proven end-to-end first
+      Then one policy module at a time
+      assign first then PR quality then lifecycle`,
     diagramCaption:
-      "Five well-architected principles, each tied to a specific Hiero failure mode it eliminates.",
+      "Six well-architected principles from the new GitHub App architecture — each eliminates a specific failure mode.",
     callouts: [
       {
         kind: "invariant",
-        text: "The principles are not aspirational — each one eliminates a specific failure mode that already exists in the current workflows.",
+        text: "The principles are not aspirational — each one eliminates a specific failure mode in the current per-repo script approach.",
       },
     ],
     body: `
-      <p>Five well-architected principles, applied directly to this system:</p>
+      <p>Six well-architected principles for the Hiero Workflow App GitHub App architecture:</p>
       <ol>
-        <li><strong>Clear responsibility</strong> — SDK repositories own triggers, permissions, checkout, harden-runner, secrets, and local policy. The central repository owns reusable automation decisions, schemas, adapters, fixtures, and releases. No step in this split hides a security control or merges two governance domains into one artefact.</li>
-        <li><strong>Secure by design</strong> — Use least-privilege <code>GITHUB_TOKEN</code> scopes; avoid running untrusted PR code in privileged jobs; pin production actions by full commit SHA; protect config with CODEOWNERS; fail closed on invalid config.</li>
-        <li><strong>Low coupling and high cohesion</strong> — Automation rules live in <code>packages/core</code>. GitHub Actions and Probot are thin adapters so the same behaviour runs from either execution model without duplicating logic.</li>
-        <li><strong>Observable and testable</strong> — Every automation supports dry-run output, structured logs, idempotent writes, golden fixtures, and behaviour parity tests before write mode is enabled upstream.</li>
-        <li><strong>Evolvable</strong> — New automations are registered in the core and versioned through the config schema, rather than copied across SDK repositories.</li>
+        <li><strong>One trust boundary, at the listener</strong> — Every event is HMAC-SHA256 verified before entering the internal pipeline. No policy module receives an unverified payload. Reject on mismatch before any routing logic runs.</li>
+        <li><strong>Modules are pure</strong> — Policy modules are pure decision functions: they receive a validated event context and config, return a list of approved operations, and perform no I/O. This makes them trivially testable in isolation.</li>
+        <li><strong>Config is policy, not code</strong> — The <code>.github/hiero-automation.yml</code> is the app's governance surface. Repositories express intent through typed, schema-validated fields. They cannot inject behavior through config.</li>
+        <li><strong>Executor handles all mutations</strong> — No module writes to GitHub directly. Idempotency, delivery deduplication, rate-limit handling, and audit logging are all centrally enforceable in a single write path.</li>
+        <li><strong>Audit is first-class</strong> — Every event produces an audit record regardless of outcome. An event that produces no mutation still produces an audit entry explaining why. 90-day append-only retention.</li>
+        <li><strong>Shell before modules</strong> — The listener → normalizer → router → dispatcher → executor → audit path must work end-to-end before any policy module is attached. Then one module at a time, starting with /assign.</li>
       </ol>
     `,
   },
@@ -90,49 +98,59 @@ export const QUESTIONS: Question[] = [
       { key: "A", value: 2 },
     ],
     pullQuote:
-      "Four zones, one invariant: centralise decision logic; never centralise repository control.",
+      "GitHub App with a clean 8-stage pipeline. Shell before modules. /assign is the first product slice.",
     fullSpan: true,
     youtubeUrl: null,
-    mermaid: `graph LR
-  subgraph SDK_Repos["Python / C++ SDK Repos"]
+    mermaid: `graph TB
+  GH["GitHub Repositories"]
+
+  subgraph App["Hiero Workflow App - GitHub App"]
     direction TB
-    WF["Workflow YAML<br/>triggers, permissions<br/>harden-runner, checkout<br/>repo config, rollout approval"]
+    L["Webhook Listener\nHMAC-SHA256 - Trust Boundary"]
+    N["Event Normalizer\nNormalizedEvent model"]
+    R["Router\nDeclarative route registration"]
+    D["Dispatcher\nModule registry - Error handling"]
+    PM["Policy Modules\nPure decision functions - No IO"]
+    E["Executor\nIdempotency - Back-off"]
+    CE["Config Engine\nhiero-automation.yml - Schema validated"]
+    AL["Audit Logger\nAppend-only - 90-day retention"]
   end
-  subgraph Actions_Adapter["GitHub Action Adapter (Current Path)"]
-    direction TB
-    AA["Validates inputs/config<br/>Calls shared core<br/>Supports dry-run and writes"]
-  end
-  subgraph Probot_Adapter["Probot / GitHub App Adapter (Later Path)"]
-    direction TB
-    PA["Webhook auth and routing<br/>Same core functions<br/>No second behaviour copy"]
-  end
-  subgraph Core["sdk-automations / packages/core"]
-    direction TB
-    CR["Registry, review-sync<br/>Assignment, PR checks<br/>Comment builders, label decisions<br/>Config validation, fixtures<br/>Golden parity tests"]
-  end
-  GH_API["GitHub API<br/>Comments, Labels<br/>Assignees, PR metadata"]
-  SDK_Repos -->|"uses (pinned SHA)"| Actions_Adapter
-  SDK_Repos -.->|"opts in (later)"| Probot_Adapter
-  Actions_Adapter -->|"calls"| Core
-  Probot_Adapter -->|"calls"| Core
-  Core -->|"read/write"| GH_API`,
+
+  GHAPI["GitHub API"]
+
+  GH -->|"HTTPS webhook"| L
+  L -->|"Verified payload"| N
+  N -->|"NormalizedEvent"| R
+  R -->|"Named route"| D
+  CE -->|"Validated config"| D
+  D -->|"Event context + config"| PM
+  PM -->|"ApprovedOperations"| E
+  E -->|"read/write"| GHAPI
+  CE -->|"reads config"| GHAPI
+  L -->|"audit"| AL
+  N -->|"audit"| AL
+  D -->|"audit"| AL
+  E -->|"audit"| AL`,
     diagramCaption:
-      "Four zones converge on one shared core. No zone owns another's security boundary.",
+      "Eight-component GitHub App pipeline. Config Engine and Audit Logger are crosscutting. No module writes to GitHub directly — only the Executor does.",
     callouts: [
       {
         kind: "invariant",
-        text: "Centralise reusable decision logic. Do not centralise repository control until governance, security, and parity gates are satisfied.",
+        text: "The GitHub App IS the product architecture — not a 'later path'. GitHub Actions is a compatibility and testing adapter only. The pipeline must work end-to-end before any policy module is attached.",
       },
     ],
     body: `
-      <p>Four zones exist in the architecture:</p>
+      <p>The end-state architecture is a GitHub App with a clean 8-stage event pipeline:</p>
       <ol>
-        <li>SDK repos that own all workflow control and security.</li>
-        <li>The GitHub Action adapter as the current execution path.</li>
-        <li>The Probot/GitHub App adapter as the later path calling the same core.</li>
-        <li><code>sdk-automations/packages/core</code> containing all reusable decision logic.</li>
+        <li><strong>Webhook Listener</strong> — First and only trust boundary. HMAC-SHA256 verification before any routing logic runs.</li>
+        <li><strong>Event Normalizer</strong> — Converts raw GitHub payloads to a stable <code>NormalizedEvent</code> model. Policy modules never depend on raw webhook shape.</li>
+        <li><strong>Router</strong> — Maps normalized events and parsed commands (e.g. <code>/assign</code>) to named product routes. Declaratively registered; adding a command doesn't require changes to listener or dispatcher.</li>
+        <li><strong>Dispatcher</strong> — Loads validated config, selects the correct policy module, and forwards approved operations to the executor. Handles all error paths without crashing.</li>
+        <li><strong>Config Engine</strong> — Loads and validates <code>.github/hiero-automation.yml</code> from the target repository. Applies schema validation and safe defaults. Unknown high-risk fields fail closed.</li>
+        <li><strong>Policy Modules</strong> — Pure decision functions. Receive validated event context and config; return a list of <code>ApprovedOperation</code>s. Never call GitHub directly. First module: <code>/assign</code>.</li>
+        <li><strong>Executor</strong> — Executes approved operations against the GitHub API. Enforces idempotency, handles rate limits, records mutation results for audit.</li>
+        <li><strong>Audit Logger</strong> — Records every decision append-only: event context, config version, module selected, intended operations, actual results, failure reasons. 90-day retention.</li>
       </ol>
-      <p>All paths converge on the same core. No zone owns another's security boundary.</p>
     `,
   },
   {
@@ -147,32 +165,38 @@ export const QUESTIONS: Question[] = [
     pullQuote:
       "Each boundary corresponds to a real risk if violated — not an aesthetic preference.",
     youtubeUrl: null,
-    mermaid: `graph TB
-  subgraph Repo_Local["Repo-Local Boundary (Security and Maintainer Ownership)"]
-    RL["YAML triggers<br/>Permissions<br/>Checkout ref<br/>Harden-runner<br/>Concurrency<br/>Token selection"]
+    mermaid: `graph LR
+  subgraph GitHub_App["GitHub App (Product Centre)"]
+    GA["Webhook Listener\nEvent Normalizer\nRouter - Dispatcher\nPolicy Modules\nExecutor\nAudit Logger"]
   end
-  subgraph Shared_Core["Shared-Core Boundary (Shared Implementation)"]
-    SC["Label decisions<br/>Assignment eligibility<br/>Review-sync rules<br/>Comment builders<br/>Retry helpers<br/>Schemas and Fixtures"]
+  subgraph Repo_Config["Repository Config (Per-SDK Policy)"]
+    RC["Labels - Teams\nThresholds\nGuide URLs\nEnabled modules\nWaiver labels"]
   end
-  subgraph Policy["Policy Boundary (Protected Local Config)"]
-    PO["Label names<br/>Team handles<br/>Docs links<br/>Assignment limits<br/>Enabled automations"]
+  subgraph SDK_Workflows["SDK Repo Workflows (Stay Local Forever)"]
+    SW["Build - Test - Release\nRepo-specific CI\nRunner jobs\nharden-runner\nCheckout - Secrets"]
   end
-  subgraph Hosted_App["Hosted-App Boundary (Deferred)"]
-    HA["Probot hosting<br/>Webhook secrets<br/>Installation permissions<br/>Availability SLA<br/>Incident ownership"]
+  subgraph Actions_Adapter["GitHub Actions Adapter (Testing Path Only)"]
+    AA["Optional canary\nCompatibility testing\nNot the product architecture"]
   end
-  Repo_Local -->|"calls via pinned SHA"| Shared_Core
-  Policy -->|"validated by schema"| Shared_Core
-  Shared_Core -->|"future adapter"| Hosted_App`,
+  subgraph Human["Human Maintainer Control"]
+    HM["Approvals\nModule disable\nRollout decisions\nIncident response"]
+  end
+  Repo_Config -->|"read by Config Engine"| GitHub_App
+  GitHub_App -->|"writes via Executor"| GHAPI["GitHub API"]
+  SDK_Workflows -.->|"triggers webhooks"| GitHub_App
+  Human -->|"overrides and approvals"| GitHub_App
+  Actions_Adapter -.->|"testing/canary only"| GitHub_App`,
     diagramCaption:
-      "Four boundaries with explicit ownership; crossing them requires a reviewed contract.",
+      "Five boundary zones. The GitHub App is the product centre — not a future path. SDK workflows stay local forever.",
     body: `
       <table>
-        <thead><tr><th>Boundary</th><th>What lives there</th><th>Why it must stay there</th></tr></thead>
+        <thead><tr><th>Zone</th><th>What stays there</th><th>Why it must stay there</th></tr></thead>
         <tbody>
-          <tr><td>Repo-local</td><td>Workflow YAML, permissions, checkout ref, harden-runner, concurrency, token selection</td><td>Security and maintainer-ownership controls. Moving them hides the security surface from the team accountable for it.</td></tr>
-          <tr><td>Shared-core</td><td>Label decisions, assignment eligibility, review-sync rules, PR checks, comment builders, retry helpers, logging conventions, fixtures, schemas</td><td>Duplication creates maintenance cost and behavioural drift across SDKs.</td></tr>
-          <tr><td>Policy</td><td>Labels, team handles, docs links, support channels, assignment limits, enabled automations</td><td>SDK-specific choices must not become code forks in the shared repo.</td></tr>
-          <tr><td>Hosted-app</td><td>Probot/GitHub App hosting</td><td>Introduces webhook secrets, installation permissions, availability SLAs, incident response — not warranted until core is stable.</td></tr>
+          <tr><td>GitHub App</td><td>Webhook listener, event normalizer, router, dispatcher, policy modules, executor, audit logging</td><td>This is the final product and the place where reusable automation behavior belongs.</td></tr>
+          <tr><td>Repository Config</td><td>Labels, teams, thresholds, guide URLs, enabled modules, schedules, waiver labels, policy choices</td><td>SDKs need policy control without forking code. Config is the governance contract, not a convenience feature.</td></tr>
+          <tr><td>SDK Repo Workflows</td><td>Build, test, release workflows, repo-specific CI, runner-controlled jobs, artifact handling, harden-runner, checkout, secrets</td><td>Not every workflow is an app workflow. These define the security boundary and event context for each repository and must stay local forever.</td></tr>
+          <tr><td>GitHub Actions Adapter</td><td>Optional canary/testing adapter for transition and validation</td><td>Useful for validation only. Sophie's feedback: it should not drive the architecture. It is a testing path, not the product.</td></tr>
+          <tr><td>Human Maintainer Control</td><td>Approvals, module disabling, rollout decisions, incident response</td><td>Automation reduces maintenance load but must never remove maintainer accountability.</td></tr>
         </tbody>
       </table>
     `,
@@ -191,20 +215,20 @@ export const QUESTIONS: Question[] = [
       "Every tooling choice is justified by what it prevents, not only what it enables.",
     youtubeUrl: null,
     mermaid: `graph TD
-  Runtime["GitHub Actions<br/>Current execution env<br/>No new infrastructure"]
-  Lang["Node.js + Octokit<br/>Native to GitHub automation<br/>Bundles as action artifact"]
-  Core["packages/core<br/>Adapter-agnostic modules<br/>Same functions for Actions and Probot"]
-  Config["YAML/JSON + JSON Schema<br/>Versioned contract<br/>Fails closed on invalid"]
-  Test["Unit + Mock + Fixtures<br/>Dry-run canaries + Parity checks<br/>Each layer catches different failure"]
-  SecOps["Harden-Runner + CODEOWNERS<br/>SHA pinning + npm audit<br/>Branch protection + Rollback docs"]
-  Runtime --> Core
-  Lang --> Core
-  Core --> Config
-  Core --> Test
+  Runtime["GitHub App Hosting\nNode.js server or cloud function\nWebhook endpoint - Secure vault"]
+  Lang["Node.js + Octokit\nNative to GitHub API\nInstallation-scoped tokens"]
+  Pipeline["8-Component Pipeline\nListener - Normalizer - Router\nDispatcher - Policy Modules\nExecutor - Config Engine - Audit"]
+  Config["YAML + JSON Schema\nVersioned contract\nFails closed on invalid\nSafe defaults applied"]
+  Test["Unit + Mock + Fixtures\nSecurity tests on every push\n90 pct branch coverage target"]
+  SecOps["HMAC-SHA256 verification\nDelivery ID deduplication\nIdempotency keys\nMin-permission tokens"]
+  Runtime --> Pipeline
+  Lang --> Pipeline
+  Pipeline --> Config
+  Pipeline --> Test
   Config --> SecOps
   Test --> SecOps`,
     diagramCaption:
-      "Six tooling layers, each chosen for a specific failure mode it prevents.",
+      "Six tooling layers built around the GitHub App pipeline. GitHub Actions is a testing/compatibility adapter, not the runtime.",
     callouts: [
       {
         kind: "invariant",
@@ -213,12 +237,12 @@ export const QUESTIONS: Question[] = [
     ],
     body: `
       <ul>
-        <li><strong>GitHub Actions first</strong> — matches existing SDK operations; no new hosting introduced in Phase 1.</li>
-        <li><strong>Node.js / Octokit</strong> — native to GitHub automation, bundles cleanly, no secondary runtime needed.</li>
-        <li><strong>packages/core</strong> — adapter-agnostic; behaviour tested once, delivered to both Actions and Probot.</li>
-        <li><strong>JSON Schema config</strong> — schema versioning prevents silent drift; invalid config fails closed.</li>
-        <li><strong>Layered verification</strong> — unit, mocked integration, golden fixtures, dry-run canaries, parity checks.</li>
-        <li><strong>Security ops stack</strong> — Harden-Runner, CODEOWNERS, branch protection, SHA pinning, Dependabot — governance gate, not optional extras.</li>
+        <li><strong>GitHub App hosting</strong> — The product runtime is a webhook listener (Node.js server or cloud function) with a secure vault for private keys, not GitHub Actions. Actions is the compatibility/testing path only.</li>
+        <li><strong>Node.js / Octokit</strong> — native to GitHub automation, installation-scoped tokens, no secondary runtime needed.</li>
+        <li><strong>8-component pipeline</strong> — Listener, Normalizer, Router, Dispatcher, Policy Modules, Executor, Config Engine, Audit Logger. Each component has a single responsibility.</li>
+        <li><strong>JSON Schema config</strong> — Schema versioning prevents silent drift; invalid config fails closed; safe conservative defaults applied automatically.</li>
+        <li><strong>Layered testing</strong> — Unit (policy decisions as pure functions), integration (mocked GitHub API), fixture/golden tests, schema tests, security/negative tests, sandbox app tests. 90%+ branch coverage on state-mutating logic.</li>
+        <li><strong>Security ops stack</strong> — HMAC-SHA256 signature verification, delivery ID deduplication, idempotency keys, minimum-permission installation-scoped tokens, fail-closed on dedup store unavailability.</li>
       </ul>
     `,
   },
@@ -229,19 +253,30 @@ export const QUESTIONS: Question[] = [
     marks: 2,
     criteria: [{ key: "A", value: 2 }],
     pullQuote:
-      "Architecture and threat model first — but reversible proof work starts immediately.",
+      "App Shell first. Then /assign. Then one module at a time — gated by exit criteria, not calendar dates.",
     youtubeUrl: null,
     mermaid: `timeline
-  title Iterative Build Sequence
-  Architecture and reversible work : Threat model and boundaries : Core skeleton and schema : Fixtures and dry-run adapter
-  Python review-sync pilot : Dry-run canary upstream : Parity tests pass : One controlled write enabled
-  Assignment mapping : Python and C++ behaviour compared : Common core extracted only after map
-  C++ investigation : Before/after examples collected : Wrapper evaluated with evidence
-  Probot / GitHub App : Adapter over stable core : No second behaviour implementation`,
+  title 7-Phase Gated Delivery Roadmap
+  Phase 0 Architecture Agreement : Agree on 8-component pipeline : Confirm assign as first slice : Mentor and maintainer sign-off
+  Phase 1 App Shell : Webhook Listener and Normalizer : Router and Dispatcher : Config Engine and Audit Logger : No policy modules yet
+  Phase 2 assign Minimal : Issue eligibility check : Assignment write and comment : Audit event per outcome : Sandbox end-to-end test
+  Phase 3 assign Guards : Account age and max assignments : Prerequisites and block labels : Waiver and maintainer override : Dry-run pilot in one repo
+  Phase 4 PR Quality Module : DCO and GPG checks : Merge conflict detection : Linked issue requirement : Independent module and config section
+  Phase 5 Lifecycle Modules : Issue and PR cleanup : Progression and review process : Each module independent : Own config fixture enablement
+  Phase 6 Wider Rollout : Per-repo adoption guides : Community issue backlog : Final demo and handoff`,
     diagramCaption:
-      "Five sequenced stages — reversible work runs in parallel with architecture.",
+      "7-phase gated roadmap. Each phase closes only when its exit criteria are met — not on a calendar date.",
     body: `
-      <p>Five sequenced stages — architecture and reversible proof work run in parallel; Python review-sync pilots first (bounded, canary-proven); assignment logic extraction waits for a Python/C++ behaviour map; C++ follows through investigation; Probot comes last as an adapter, not a rewrite.</p>
+      <p>Seven gated phases — each phase must satisfy specific exit criteria before advancing. A phase is not complete because the calendar says so; it is complete when the observable conditions are met.</p>
+      <ul>
+        <li><strong>Phase 0</strong> — Architecture agreement. /assign confirmed as first slice. No code written until mentor and maintainer agree on the pipeline model.</li>
+        <li><strong>Phase 1</strong> — App Shell: listener, normalizer, router, dispatcher, config engine, executor, audit logger. No policy module yet. Exit: synthetic webhooks route end-to-end, audit records produced, security tests pass.</li>
+        <li><strong>Phase 2</strong> — /assign minimal: issue eligibility, assignment write, comment, audit. No guards yet. Exit: works in sandbox, no duplicate writes, failure paths audited.</li>
+        <li><strong>Phase 3</strong> — /assign guards: account age, max assignments, prerequisites, block labels, waiver, maintainer override. Dry-run pilot. Exit: all guards fixture-tested, dry-run reviewed by maintainer.</li>
+        <li><strong>Phase 4</strong> — PR Quality: DCO, GPG, merge conflict, linked issue, conventional title. Independent module. Exit: independent config section, no shared state with Assignment Policy.</li>
+        <li><strong>Phase 5</strong> — Lifecycle modules: issue cleanup, PR cleanup, progression, review process. Exit: each independent with own config, fixtures, enablement flag.</li>
+        <li><strong>Phase 6</strong> — Wider rollout: adoption guides, community issue backlog, final demo and handoff.</li>
+      </ul>
     `,
   },
   {
@@ -277,7 +312,7 @@ export const QUESTIONS: Question[] = [
     callouts: [
       {
         kind: "warn",
-        text: "Systemic safeguards apply across all risks: validate actor type, event type, repo, PR number, and config schema before acting. Unknown config fails closed. For workflow_run flows, validate artefact identity locally before consuming anything. For Probot: verify webhook signatures, use installation-scoped permissions.",
+        text: "Systemic safeguards apply across all risks: validate actor type, event type, repo, PR number, and config schema before acting. Unknown config fails closed. For workflow_run flows, validate artefact identity locally before consuming anything. Webhook Listener: verify HMAC-SHA256 signature, use installation-scoped permissions, dedup delivery IDs.",
       },
     ],
     body: `
@@ -349,31 +384,37 @@ export const QUESTIONS: Question[] = [
       "Give contributors useful work without making maintainers triage risky rewrites.",
     youtubeUrl: null,
     mermaid: `graph TD
-  Backlog["Public Issue Backlog<br/>(Architecture as community surface)"]
-  Backlog --> L1["good-first-issue<br/>Docs and fixture extraction"]
-  Backlog --> L2["beginner<br/>Test cases and config samples"]
-  Backlog --> L3["intermediate<br/>Adapter and config validation"]
-  Backlog --> L4["advanced<br/>Security pilots and C++ investigation"]
-  L1 --> RFC["RFC Thread Per Automation<br/>States: reusable logic, boundary, policy<br/>fixtures, rollback plan, owner"]
-  L2 --> RFC
-  L3 --> RFC
-  L4 --> RFC
-  RFC --> PR["Reviewable PR<br/>Dry-run proof + Parity tests<br/>Security checklist + Maintainer approval"]
-  PR --> Demo["Public canary reproduction steps<br/>Python and C++ maintainers review behaviour<br/>Central team reviews schema and security"]`,
+  Backlog["Phase-Gated Issue Backlog\n(Architecture as community surface)"]
+  Backlog --> L1["architecture-doc\nContext diagrams, boundary docs, config schema"]
+  Backlog --> L2["fixture\nGolden test cases for policy module behaviour"]
+  Backlog --> L3["schema\nConfig schema sections and validation rules"]
+  Backlog --> L4["policy-module\nPolicy module implementation per phase"]
+  Backlog --> L5["security-review\nThreat model, permission audit, dedup review"]
+  Backlog --> L6["rollout-doc\nAdoption guides, canary steps, rollback plans"]
+  L1 --> Gate["Phase Gate Review\nMentor and maintainer review evidence\nExit criteria verified before next phase opens"]
+  L2 --> Gate
+  L3 --> Gate
+  L4 --> Gate
+  L5 --> Gate
+  L6 --> Gate
+  Gate --> PR["Reviewable PR\nUnit tests + Schema tests\nSecurity checklist + Maintainer approval"]
+  PR --> Merge["Merge to main\nAudit record updated\nNext phase issues opened"]`,
     diagramCaption:
-      "Four contributor tiers feed RFC threads, which gate reviewable PRs and public canaries.",
+      "Phase-gated community issue backlog. Each phase opens a new set of labelled issues. Issues advance only after phase exit criteria pass.",
     body: `
       <table>
-        <thead><tr><th>Work package</th><th>Good community issue shape</th></tr></thead>
+        <thead><tr><th>Issue label</th><th>What contributors work on</th></tr></thead>
         <tbody>
-          <tr><td>Behaviour mapping</td><td>Compare Python and C++ behaviour for one automation; record common logic, policy differences, fixtures, and unknowns.</td></tr>
-          <tr><td>Fixture and parity tests</td><td>Convert real examples into golden cases so central behaviour is proved before production writes.</td></tr>
-          <tr><td>Docs and examples</td><td>Create caller workflow examples, config samples, rollback instructions, and security checklists.</td></tr>
-          <tr><td>Canary support</td><td>Run dry-run pilots, collect logs, identify false positives, and file follow-up issues.</td></tr>
-          <tr><td>Security review</td><td>Threat-model pull_request_target, artefact flows, permissions, app installation scopes, and release pinning.</td></tr>
+          <tr><td><code>architecture-doc</code></td><td>Context diagrams, boundary definitions, config schema documentation, decision records.</td></tr>
+          <tr><td><code>fixture</code></td><td>Golden test cases for policy module behaviour — converts real /assign examples into fixture-backed unit tests.</td></tr>
+          <tr><td><code>schema</code></td><td>Config schema sections, validation rules for each module's config block, schema migration guides.</td></tr>
+          <tr><td><code>policy-module</code></td><td>Policy module implementation (pure decision functions) gated to the correct phase.</td></tr>
+          <tr><td><code>security-review</code></td><td>Threat modelling, permission audits, delivery deduplication review, webhook security review.</td></tr>
+          <tr><td><code>rollout-doc</code></td><td>Per-repo adoption guides, canary walkthrough steps, rollback plans and incident runbooks.</td></tr>
+          <tr><td><code>maintainer-only</code></td><td>Phase gate approvals, module disablement, incident decisions. Not open to external contributors.</td></tr>
         </tbody>
       </table>
-      <p>Each automation migration has an RFC thread before any code moves. Each RFC states: reusable logic, repo-local boundary, policy config, test fixtures, rollback plan, and owner.</p>
+      <p>Each phase opens a defined set of labelled issues. Issues from the next phase are not opened until the current phase's exit criteria are satisfied — preventing premature work that would have to be thrown away.</p>
     `,
   },
   {
@@ -386,7 +427,7 @@ export const QUESTIONS: Question[] = [
       { key: "E", value: 2 },
     ],
     pullQuote:
-      "Two focused architecture weeks — but reversible work begins immediately, in parallel.",
+      "Architecture and App Shell first — /assign next, one module at a time, gated by exit criteria.",
     youtubeUrl: null,
     mermaid: `quadrantChart
   title Risk vs Value of Development Approaches
@@ -396,26 +437,27 @@ export const QUESTIONS: Question[] = [
   quadrant-2 Do With Care
   quadrant-3 Deprioritise
   quadrant-4 Avoid
-  Architecture and reversible work: [0.2, 0.85]
+  Architecture and App Shell: [0.15, 0.9]
   Fixtures and schema: [0.15, 0.7]
-  Dry-run adapter: [0.25, 0.75]
-  Python review-sync pilot: [0.35, 0.8]
+  assign sandbox pilot: [0.25, 0.85]
+  PR Quality module after assign: [0.3, 0.75]
   Immediate production writes: [0.85, 0.4]
-  C++ wrapper unproven: [0.9, 0.35]
-  Skip architecture entirely: [0.95, 0.2]`,
+  Skip architecture entirely: [0.95, 0.2]
+  Start with review-sync: [0.75, 0.45]`,
     diagramCaption:
-      "Risk-versus-value placement of every option considered. The recommended path lives top-left.",
+      "Risk-versus-value placement of every option. Architecture + App Shell + /assign sandbox pilot lives top-left. Starting with review-sync is high-risk.",
     body: `
       <table>
         <thead><tr><th>Option</th><th>Risk</th><th>Assessment</th></tr></thead>
         <tbody>
-          <tr><td>Start development immediately (skip architecture)</td><td>High</td><td>Replicates the existing problem: independent evolution, inconsistent security assumptions, no parity baseline.</td></tr>
-          <tr><td>Full architecture freeze before any code</td><td>Medium</td><td>Delays reversible proof work unnecessarily; fixtures, schema, and dry-run adapters carry no production risk.</td></tr>
-          <tr><td><strong>Two-week focused architecture + reversible work in parallel</strong></td><td><strong>Low</strong></td><td><strong>Recommended.</strong> Architecture gates production writes; reversible work proceeds without risk.</td></tr>
+          <tr><td>Start development immediately (skip architecture)</td><td>High</td><td>Replicates the existing problem: per-repo scripts with inconsistent security assumptions and no shared shell.</td></tr>
+          <tr><td>Start with review-sync before App Shell proven</td><td>High</td><td>Review-sync is a complex state machine that risks polluting the app shell with module-specific concerns before the shell is trustworthy.</td></tr>
+          <tr><td>Full architecture freeze before any code</td><td>Medium</td><td>Delays reversible proof work unnecessarily; fixtures and schema carry no production risk and can begin in Phase 0.</td></tr>
+          <tr><td><strong>Architecture agreement + App Shell + /assign first</strong></td><td><strong>Low</strong></td><td><strong>Recommended.</strong> Shell proven end-to-end before any policy module. /assign is the smallest scope that forces every pipeline stage. Architecture gates production writes.</td></tr>
         </tbody>
       </table>
-      <p><strong>Week 1:</strong> Context diagram, boundary definitions, threat model, config schema contract.<br/>
-      <strong>Week 2:</strong> Behaviour maps, pilot criteria, rollback plan, community issue backlog.</p>
+      <p><strong>Phase 0:</strong> Architecture agreement, 8-component pipeline, /assign as first slice confirmed.<br/>
+      <strong>Phase 1:</strong> App shell end-to-end (no policy module). <strong>Phase 2–3:</strong> /assign minimal then /assign with guards.</p>
     `,
   },
 ];

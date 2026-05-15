@@ -4,6 +4,7 @@ import { Hero } from "@/components/Hero";
 import { Thesis } from "@/components/Thesis";
 import { ContributionsTimeline } from "@/components/ContributionsTimeline";
 import { ArchitectureSection } from "@/components/ArchitectureSection";
+import { AssignSection } from "@/components/AssignSection";
 import { SecuritySection } from "@/components/SecuritySection";
 import { PrototypesSection } from "@/components/PrototypesSection";
 import { TimelineSection } from "@/components/TimelineSection";
@@ -23,6 +24,7 @@ function Index() {
         <Thesis />
         <ContributionsTimeline />
         <ArchitectureSection />
+        <AssignSection />
         <SecuritySection />
         <PrototypesSection />
         <TimelineSection />
