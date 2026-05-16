@@ -43,31 +43,37 @@ export const QUESTIONS: Question[] = [
       "One trust boundary at the listener. Modules are pure functions. Audit is first-class.",
     youtubeUrl: null,
     mermaid: `mindmap
-  root((Well-Architected Hiero App))
-    One Trust Boundary
-      HMAC-SHA256 at Webhook Listener
-      No module receives unverified payload
-      Fail closed on signature mismatch
-    Modules Are Pure
-      Policy modules return decisions only
-      No direct GitHub API calls from modules
-      Trivially unit-testable in isolation
-    Config Is Policy Not Code
-      Schema-validated hiero-automation.yml
-      Repositories express intent not behavior
-      Unknown high-risk fields fail closed
-    Executor Owns All Mutations
-      Single write path for idempotency
-      Delivery ID deduplication
-      Exponential back-off centrally enforced
-    Audit Is First-Class
-      Every event produces an audit record
-      Even no-op decisions are recorded
-      90-day append-only retention
-    Shell Before Modules
-      Pipeline proven end-to-end first
-      Then one policy module at a time
-      assign first then PR quality then lifecycle`,
+  root((Hiero Workflow App))
+    Clear Responsibility
+      SDK repos own triggers permissions checkout harden-runner secrets
+      GitHub App owns decisions schemas adapters releases
+      No merged governance domains or security surfaces
+    Secure by Design
+      HMAC-SHA256 verification at listener boundary
+      Installation-scoped tokens only
+      CODEOWNERS on hiero-automation config files
+      Fail closed on missing or invalid config
+      Strict command parsing with regex
+    Low Coupling and High Cohesion
+      Decision logic lives in packages/core
+      Probot App is a thin delivery layer over core
+      Actions adapter is a thin delivery layer over core
+      Behaviour tested once and delivered two ways
+    Observable and Testable
+      Structured JSON logs via Pino
+      Idempotent writes via bot markers
+      Golden fixtures and parity tests
+      No module ships before parity tests are green
+    Evolvable
+      Module registry for new automations
+      Config schema versioned with 30-day compat windows
+      New modules register without modifying adapter code
+      No cross-SDK script copying ever
+    Microkernel Foundation
+      packages/core is the decision kernel
+      Probot App is a delivery plug-in
+      Actions adapter is a delivery plug-in
+      New commands register declaratively in the router`,
     diagramCaption:
       "Six well-architected principles from the new GitHub App architecture — each eliminates a specific failure mode.",
     callouts: [
@@ -101,36 +107,41 @@ export const QUESTIONS: Question[] = [
       "GitHub App with a clean 8-stage pipeline. Shell before modules. /assign is the first product slice.",
     fullSpan: true,
     youtubeUrl: null,
-    mermaid: `graph TB
-  GH["GitHub Repositories"]
+    mermaid: `flowchart LR
+    GH["GitHub Repositories\\nWebhook Events"]
 
-  subgraph App["Hiero Workflow App - GitHub App"]
-    direction TB
-    L["Webhook Listener\nHMAC-SHA256 - Trust Boundary"]
-    N["Event Normalizer\nNormalizedEvent model"]
-    R["Router\nDeclarative route registration"]
-    D["Dispatcher\nModule registry - Error handling"]
-    PM["Policy Modules\nPure decision functions - No IO"]
-    E["Executor\nIdempotency - Back-off"]
-    CE["Config Engine\nhiero-automation.yml - Schema validated"]
-    AL["Audit Logger\nAppend-only - 90-day retention"]
-  end
+    subgraph APP["   Zone 1 — GitHub App  sdk-automations   "]
+        L["Webhook Listener\\nHMAC-SHA256 Verify\\nInstallation ID Check\\nDelivery ID Dedup"]
+        N["Event Normalizer\\nRaw Payload to NormalizedEvent\\nGitHub API-change isolation"]
+        R["Router\\nDeclarative Route Registration\\n/assign to AssignmentCommand"]
+        CE["Config Engine\\nZod Schema Validation\\nhiero-automation.yml\\nFail closed on invalid"]
+        D["Dispatcher\\nModule Registry Lookup\\nConfig Loader\\nPolicy Module Selector"]
+        PM["Policy Modules\\nPure Functions  No IO\\nAssignment  PR Quality\\nIssue Lifecycle  PR Lifecycle\\nProgression  Review"]
+        E["GitHub API Executor\\nIdempotent Writes\\nInstallation-scoped Token\\nExponential Backoff\\nBot-marker Checks"]
+        AL["Audit Logger  Pino\\nAppend-Only  Structured JSON\\nEvery Decision Recorded\\n90-day Retention"]
+    end
 
-  GHAPI["GitHub API"]
+    GH -->|"HTTPS Webhook"| L
+    L --> N
+    N --> R
+    R --> D
+    CE -->|"Validated Config"| D
+    D --> PM
+    PM -->|"ApprovedOperation[]"| E
+    E -->|"GitHub API Writes"| GH
+    L -->|"audit"| AL
+    N -->|"audit"| AL
+    R -->|"audit"| AL
+    D -->|"audit"| AL
+    PM -->|"audit"| AL
+    E -->|"audit"| AL
 
-  GH -->|"HTTPS webhook"| L
-  L -->|"Verified payload"| N
-  N -->|"NormalizedEvent"| R
-  R -->|"Named route"| D
-  CE -->|"Validated config"| D
-  D -->|"Event context + config"| PM
-  PM -->|"ApprovedOperations"| E
-  E -->|"read/write"| GHAPI
-  CE -->|"reads config"| GHAPI
-  L -->|"audit"| AL
-  N -->|"audit"| AL
-  D -->|"audit"| AL
-  E -->|"audit"| AL`,
+    subgraph ACT["Zone 4 — Actions Adapter  Batch / Compatibility Only"]
+        AA["GitHub Actions Adapter\\nScheduled  Batch  Canary\\nCalls same packages/core"]
+    end
+
+    GH -->|"testing trigger"| ACT
+    ACT -->|"packages/core calls"| PM`,
     diagramCaption:
       "Eight-component GitHub App pipeline. Config Engine and Audit Logger are crosscutting. No module writes to GitHub directly — only the Executor does.",
     callouts: [
@@ -165,27 +176,40 @@ export const QUESTIONS: Question[] = [
     pullQuote:
       "Each boundary corresponds to a real risk if violated — not an aesthetic preference.",
     youtubeUrl: null,
-    mermaid: `graph LR
-  subgraph GitHub_App["GitHub App (Product Centre)"]
-    GA["Webhook Listener\nEvent Normalizer\nRouter - Dispatcher\nPolicy Modules\nExecutor\nAudit Logger"]
-  end
-  subgraph Repo_Config["Repository Config (Per-SDK Policy)"]
-    RC["Labels - Teams\nThresholds\nGuide URLs\nEnabled modules\nWaiver labels"]
-  end
-  subgraph SDK_Workflows["SDK Repo Workflows (Stay Local Forever)"]
-    SW["Build - Test - Release\nRepo-specific CI\nRunner jobs\nharden-runner\nCheckout - Secrets"]
-  end
-  subgraph Actions_Adapter["GitHub Actions Adapter (Testing Path Only)"]
-    AA["Optional canary\nCompatibility testing\nNot the product architecture"]
-  end
-  subgraph Human["Human Maintainer Control"]
-    HM["Approvals\nModule disable\nRollout decisions\nIncident response"]
-  end
-  Repo_Config -->|"read by Config Engine"| GitHub_App
-  GitHub_App -->|"writes via Executor"| GHAPI["GitHub API"]
-  SDK_Workflows -.->|"triggers webhooks"| GitHub_App
-  Human -->|"overrides and approvals"| GitHub_App
-  Actions_Adapter -.->|"testing/canary only"| GitHub_App`,
+    mermaid: `graph TB
+    GH["GitHub\\nWebhook Events and GitHub API"]
+
+    subgraph Z1["Zone 1 — GitHub App — REUSABLE AUTOMATION"]
+        PIPE["Webhook Listener  Event Normalizer  Router\\nDispatcher  Config Engine\\nPolicy Modules  Executor  Audit Logger\\nBuilt once  shared across all installed repos"]
+    end
+
+    subgraph Z2["Zone 2 — Repository Config — PER-SDK POLICY"]
+        CONF[".github/hiero-automation.yml\\nLabels  Teams  Thresholds  Doc Links\\nEnabled Modules  Waiver Labels  Schedules\\nSDK-specific governance choices"]
+    end
+
+    subgraph Z3["Zone 3 — SDK Repo Workflows — STAYS LOCAL FOREVER"]
+        LOCAL["Workflow YAML  Triggers  Permissions\\nHarden-Runner  Checkout  Secrets  Artifacts\\nBuild  Test  Release CI Jobs\\nConcurrency Rules and if-Guards"]
+    end
+
+    subgraph Z4["Zone 4 — Actions Adapter — COMPATIBILITY PATH ONLY"]
+        ADPT["Canary  Dry-run  Scheduled Batch\\nOptional testing and transition path\\nNOT the product architecture"]
+    end
+
+    GH -->|"webhook events"| Z1
+    Z1 -->|"GitHub API writes"| GH
+    Z2 -->|"config payload"| Z1
+    Z3 -->|"testing trigger"| Z4
+    Z4 -->|"adapter call"| Z1
+
+    R1["Why Z1 is central\\nReusable decision logic\\nShared across all repos\\nNo per-repo script duplication"]
+    R2["Why Z2 is per-repo\\nSDK-specific policy\\nMust not become code forks\\nin the shared repository"]
+    R3["Why Z3 stays local forever\\nSecurity and maintainer ownership controls\\nCentralising hides the security surface\\nfrom the team accountable for it"]
+    R4["Why Z4 is not the architecture\\nSophies feedback  useful for validation\\nbut must not drive the architecture\\nCompatibility adapter only"]
+
+    Z1 -.->|"rationale"| R1
+    Z2 -.->|"rationale"| R2
+    Z3 -.->|"rationale"| R3
+    Z4 -.->|"rationale"| R4`,
     diagramCaption:
       "Five boundary zones. The GitHub App is the product centre — not a future path. SDK workflows stay local forever.",
     body: `
@@ -215,18 +239,46 @@ export const QUESTIONS: Question[] = [
       "Every tooling choice is justified by what it prevents, not only what it enables.",
     youtubeUrl: null,
     mermaid: `graph TD
-  Runtime["GitHub App Hosting\nNode.js server or cloud function\nWebhook endpoint - Secure vault"]
-  Lang["Node.js + Octokit\nNative to GitHub API\nInstallation-scoped tokens"]
-  Pipeline["8-Component Pipeline\nListener - Normalizer - Router\nDispatcher - Policy Modules\nExecutor - Config Engine - Audit"]
-  Config["YAML + JSON Schema\nVersioned contract\nFails closed on invalid\nSafe defaults applied"]
-  Test["Unit + Mock + Fixtures\nSecurity tests on every push\n90 pct branch coverage target"]
-  SecOps["HMAC-SHA256 verification\nDelivery ID deduplication\nIdempotency keys\nMin-permission tokens"]
-  Runtime --> Pipeline
-  Lang --> Pipeline
-  Pipeline --> Config
-  Pipeline --> Test
-  Config --> SecOps
-  Test --> SecOps`,
+    subgraph RUNTIME["Runtime and Hosting"]
+        P["Probot — GitHub App\\nReal-time webhook processing\\nPrimary path for interactive commands like /assign\\nJustification: batch-only Actions cannot handle\\nreal-time interactive commands"]
+        HOST["Cloud Run or Railway\\nContainerised Node.js TypeScript\\nBlue-green rollout strategy\\nHosting model ADR required before Phase 1\\nDetermines token cache and dedup store design"]
+        REDIS["Redis\\nDelivery dedup via SET NX with 24h TTL\\nInstallation token cache with 55-min TTL\\nConfig cache with 5-min TTL and stampede lock\\nJustification: prevents duplicate writes and stampedes"]
+    end
+
+    subgraph CORE["Core Language and Shared Logic"]
+        TS["Node.js and TypeScript\\nType-safe across the entire pipeline\\nModule interfaces enforced at compile time\\nBundles natively as a GitHub Actions artefact\\nJustification: single language across both delivery paths"]
+        PKG["packages/core\\nAdapter-agnostic decision modules\\nProbot App and Actions adapter both call same functions\\nBehaviour tested once and delivered two ways\\nJustification: prevents behavioural drift between paths"]
+        OC["Octokit\\nGitHub API client\\nInstallation-scoped requests\\nJustification: type-safe API calls with version pinning"]
+    end
+
+    subgraph SCHEMA["Config and Schema Validation"]
+        ZOD["Zod Schema\\nRuntime config validation at startup\\nTypeScript type generation from schema\\nFail closed on missing or invalid config\\nVersioned with 30-day backward-compatibility window\\nJustification: prevents config injection and drift"]
+    end
+
+    subgraph VERIFY["Verification Layers — Each Catches a Different Failure Class"]
+        UT["Unit Tests\\nPolicy modules tested in pure isolation\\nCommand parsing and guard evaluation\\nNo IO dependencies in tests"]
+        FX["Golden Fixtures\\nParity tests Python vs C++ real examples\\n100 percent fixture coverage required\\nNo behaviour ships before parity is green"]
+        IT["Integration Tests\\nMock GitHub API interactions\\nExecutor and audit logger tested together"]
+        SEC["Security Tests\\nForged webhooks  Config injection attempts\\nReplayed delivery IDs  Malformed commands\\nMust pass on every CI push  blocks merge"]
+    end
+
+    subgraph SECOPS["Security Operations — Not Optional Extras"]
+        PIN["SHA-pinned Actions\\nFull commit SHA on all action references\\nPrevents supply chain compromise"]
+        HRN["Harden-Runner\\nIn all SDK workflows\\nPrevents exfiltration via egress control"]
+        DEP["Dependabot and npm audit\\nContinuous dependency scanning\\nPrevents dependency compromise"]
+        COWN["CODEOWNERS on hiero-automation files\\nPrevents config tampering via PR"]
+    end
+
+    HOST --> P
+    REDIS --> HOST
+    P --> PKG
+    TS --> PKG
+    OC --> PKG
+    PKG --> ZOD
+    PKG --> UT
+    PKG --> FX
+    PKG --> IT
+    PKG --> SEC`,
     diagramCaption:
       "Six tooling layers built around the GitHub App pipeline. GitHub Actions is a testing/compatibility adapter, not the runtime.",
     callouts: [
@@ -255,15 +307,45 @@ export const QUESTIONS: Question[] = [
     pullQuote:
       "App Shell first. Then /assign. Then one module at a time — gated by exit criteria, not calendar dates.",
     youtubeUrl: null,
-    mermaid: `timeline
-  title 7-Phase Gated Delivery Roadmap
-  Phase 0 Architecture Agreement : Agree on 8-component pipeline : Confirm assign as first slice : Mentor and maintainer sign-off
-  Phase 1 App Shell : Webhook Listener and Normalizer : Router and Dispatcher : Config Engine and Audit Logger : No policy modules yet
-  Phase 2 assign Minimal : Issue eligibility check : Assignment write and comment : Audit event per outcome : Sandbox end-to-end test
-  Phase 3 assign Guards : Account age and max assignments : Prerequisites and block labels : Waiver and maintainer override : Dry-run pilot in one repo
-  Phase 4 PR Quality Module : DCO and GPG checks : Merge conflict detection : Linked issue requirement : Independent module and config section
-  Phase 5 Lifecycle Modules : Issue and PR cleanup : Progression and review process : Each module independent : Own config fixture enablement
-  Phase 6 Wider Rollout : Per-repo adoption guides : Community issue backlog : Final demo and handoff`,
+    mermaid: `flowchart TD
+    P0["Phase 0  Pre Jun 15\\nARCHITECTURE AGREEMENT\\n8-component pipeline agreed with mentor\\n/assign confirmed as first vertical slice\\nConfig model direction set\\nHosting model ADR decision required"]
+
+    P1["Phase 1  Jun 15 to Jul 15\\nAPP SHELL  NO POLICY MODULES YET\\nWebhook Listener with HMAC-SHA256\\nEvent Normalizer\\nRouter with declarative registration\\nDispatcher with module registry\\nConfig Engine with Zod schema\\nAudit Logger with structured JSON"]
+
+    G1{{"EXIT GATE 1\\nSynthetic events route through\\nall 8 pipeline stages correctly\\nAudit records produced\\nSecurity and schema tests pass"}}
+
+    P2["Phase 2  Jul 16 to Aug 10\\nASSIGN MINIMAL\\nAssignment Policy as pure function\\nIssue eligibility check\\nGitHub write and audit event\\nSandbox end-to-end test\\nFixture parity  3 Python and 3 C++ golden cases"]
+
+    G2{{"EXIT GATE 2\\nWorks in sandbox\\nNo duplicate writes\\nFailure paths produce clear audit records\\nFixture parity established"}}
+
+    P3["Phase 3  Aug 11 to Aug 31\\nASSIGN GUARDS  MIDTERM CHECKPOINT\\nAccount age check\\nMax assignments limit\\nPrerequisites check  waiver labels\\nMaintainer override  block labels\\nDry-run pilot in one real repository"]
+
+    G3{{"EXIT GATE 3\\nAll guards have fixture-backed tests\\nDry-run reviewed by at least one maintainer\\nNo unexpected mutations during dry-run"}}
+
+    P4["Phase 4  Sep 1 to Oct 15\\nPR QUALITY MODULE\\nDCO check  GPG check\\nMerge conflict detection\\nLinked issue requirement\\nConventional title check\\nDashboard label management\\nIndependent module with own config section"]
+
+    G4{{"EXIT GATE 4\\nIndependent module\\nOwn fixture suite\\nZero coupling to Assignment Policy internals"}}
+
+    P5["Phase 5  Oct 16 to Nov 14\\nLIFECYCLE MODULES\\nIssue Lifecycle  unassign  stale reminders  auto-unassign\\nPR Lifecycle  draft on inactive  inactive reminders\\nProgression  finalize  skill levels  recommendation labels\\nReview Policy  community review label  ready-to-merge"]
+
+    G5{{"EXIT GATE 5\\nEach module independently enabled via config\\nModules do not reference each others internals\\nAll have unit tests  fixture coverage  audit log output"}}
+
+    P6["Phase 6  Nov 15 to Nov 30\\nWIDER ROLLOUT\\nPer-repo adoption with named module owner\\nCommunity issues opened per phase\\nDocumented rollback plan per repository\\nOne-week observation window required before sign-off"]
+
+    RETIRE["TEARDOWN SAFETY RULE\\nassign.py scripts  retired after Phase 3 guards proven\\nreview_sync.py  retired after Phase 5 review module proven\\nActions YAML wrappers embedding policy  retired per module after pilot\\nScattered API retry code  retired in Phase 1 when executor centralises\\nHardcoded labels  retired in Phase 1 when config engine replaces\\nNO legacy code deleted without  parity tests green\\npilot evidence confirmed and maintainer sign-off received"]
+
+    P0 --> P1
+    P1 --> G1
+    G1 -->|"Pass"| P2
+    P2 --> G2
+    G2 -->|"Pass"| P3
+    P3 --> G3
+    G3 -->|"Pass"| P4
+    P4 --> G4
+    G4 -->|"Pass"| P5
+    P5 --> G5
+    G5 -->|"Pass"| P6
+    P3 -.->|"teardown triggers start"| RETIRE`,
     diagramCaption:
       "7-phase gated roadmap. Each phase closes only when its exit criteria are met — not on a calendar date.",
     body: `
@@ -292,21 +374,50 @@ export const QUESTIONS: Question[] = [
     pullQuote:
       "Assume a malicious contributor controls the PR branch, title, body, files, and any artefacts it produces.",
     youtubeUrl: null,
-    mermaid: `graph TD
-  A["Malicious PR<br/>Fork contributor"] -->|"controls"| B["PR title/body/branch<br/>Changed files<br/>Workflow/config in PR branch<br/>Artifacts from untrusted code"]
-  B --> C{"Risk surface"}
-  C -->|"Attack 1"| D["pull_request_target abuse<br/>or expanded permissions"]
-  C -->|"Attack 2"| E["Token/secret<br/>exfiltration via logs"]
-  C -->|"Attack 3"| F["Action or dependency<br/>compromise"]
-  C -->|"Attack 4"| G["Config/policy<br/>tampering"]
-  C -->|"Attack 5"| H["Artifact poisoning<br/>via workflow_run"]
-  C -->|"Attack 6"| I["Bot loops or<br/>broad writes"]
-  D --> D1["Never checkout PR head in privileged jobs<br/>Load config from default branch only"]
-  E --> E1["Harden-runner early and visible<br/>Mask sensitive values<br/>Audit egress"]
-  F --> F1["Pin all actions by full SHA<br/>Dependabot + npm audit<br/>Protect release branches"]
-  G --> G1["CODEOWNERS on hiero-automation files<br/>Schema validate on every invocation<br/>Fail closed on unknown fields"]
-  H --> H1["Validate run source, run ID,<br/>artefact name, path, checksum<br/>Never trust PR artefacts as authority"]
-  I --> I1["Actor/bot guards<br/>Idempotent markers<br/>Scoped label allowlists<br/>Concurrency keys + rollback path"]`,
+    mermaid: `flowchart TD
+    ATK["Malicious Contributor\\nAssumes attacker controls: PR title and body  branch name\\nchanged files  build artefacts\\nworkflow YAML and config changes in PR head"]
+
+    T1["T1  Forged or Replayed Webhook\\nAttacker crafts or replays a previously valid delivery"]
+    T2["T2  Config or Policy Tampering\\nMalicious hiero-automation.yml injected via PR head"]
+    T3["T3  Command Injection\\n/assign with crafted or malicious arguments"]
+    T4["T4  Token or Secret Exfiltration\\nUntrusted PR code runs in privileged workflow jobs"]
+    T5["T5  Dependency or Action Compromise\\nUntrusted or unpinned action versions in workflows"]
+    T6["T6  Over-broad App Permissions\\nInstallation token grants org-wide access"]
+    T7["T7  Bot Loops and Duplicate Writes\\nConcurrent webhooks cause double mutations"]
+
+    S1["SAFEGUARD T1\\nHMAC-SHA256 verification at listener boundary\\nDelivery-ID deduplication via Redis SET NX with 24h TTL\\nFail closed if dedup store is unreachable\\nEvent enqueued for manual reconciliation on store failure"]
+    S2["SAFEGUARD T2\\nConfig always loaded from default branch via GitHub API\\nNever from PR head — attacker cannot inject policy\\nCODEOWNERS on all hiero-automation config files\\nZod schema: unknown high-risk fields cause module to fail closed"]
+    S3["SAFEGUARD T3\\nStrict regex parser for all commands\\nNo argument pass-through from raw comment\\nActor-type and bot guards before any processing\\nEvent type  repo  PR number validated before acting"]
+    S4["SAFEGUARD T4\\nInstallation-scoped tokens only  no personal access tokens\\nHarden-Runner in all SDK workflows with egress restriction\\nNever checkout PR head in privileged jobs\\nAudit and restrict egress  no exfiltration path"]
+    S5["SAFEGUARD T5\\nAll actions pinned by full commit SHA  not tag or branch\\nBundle and version central actions centrally\\nDependabot and npm audit run continuously\\nPrevents supply chain attacks via dependency compromise"]
+    S6["SAFEGUARD T6\\nMinimum necessary scopes: Issues write  PRs read  Contents read\\nInstallation-scoped tokens only  no org-wide access\\nPermissions documented and reviewed per module\\nNo module can escalate beyond its declared scope"]
+    S7["SAFEGUARD T7\\nBot markers and idempotency keys per issue and PR\\nPer-entity Redis lock using SET NX per issue or PR number\\nExecutor checks current GitHub state before any retry\\nLabel already present is not re-applied\\nComment with existing bot marker is not re-posted"]
+
+    FAIL["FAIL-CLOSED DEFAULT — Applied to All Paths\\nMissing or malformed config: error logged  zero state mutations occur\\nPartial write on retry: executor verifies GitHub state before re-attempting\\nDedup store unreachable: fail closed  enqueue for manual reconciliation\\nConfig store fetch failure: last-known-good or safe conservative defaults\\nNo module ever silently fails without an audit record"]
+
+    ATK --> T1
+    ATK --> T2
+    ATK --> T3
+    ATK --> T4
+    ATK --> T5
+    ATK --> T6
+    ATK --> T7
+
+    T1 --> S1
+    T2 --> S2
+    T3 --> S3
+    T4 --> S4
+    T5 --> S5
+    T6 --> S6
+    T7 --> S7
+
+    S1 --> FAIL
+    S2 --> FAIL
+    S3 --> FAIL
+    S4 --> FAIL
+    S5 --> FAIL
+    S6 --> FAIL
+    S7 --> FAIL`,
     diagramCaption:
       "Six attack vectors mapped to specific safeguards. All writes validate first and fail closed.",
     callouts: [
@@ -333,31 +444,45 @@ export const QUESTIONS: Question[] = [
     pullQuote:
       "If it is common behaviour, put it in core. If it is repo policy, make it protected config.",
     youtubeUrl: null,
-    mermaid: `graph LR
-  subgraph Standardise["Standardise Centrally (Non-negotiable contract)"]
-    S1["Schema version"]
-    S2["Automation names"]
-    S3["Dry-run/write contract"]
-    S4["Result/log format"]
-    S5["Bot comment markers"]
-    S6["Retry logic"]
-    S7["Error categories"]
-    S8["Release compatibility"]
-  end
-  subgraph UserInput["Allow Per-Repo (With guardrails)"]
-    U1["Label names"]
-    U2["Team handles"]
-    U3["Docs links"]
-    U4["Assignment limits"]
-    U5["Enabled automations"]
-    U6["Schedules"]
-    U7["Branch filters"]
-  end
-  subgraph Schema["JSON Schema Validation (Central enforcement)"]
-    V["Valid config proceeds<br/>Invalid config fails closed"]
-  end
-  Standardise --> Schema
-  UserInput --> Schema`,
+    mermaid: `graph TB
+    subgraph CENTRAL["Standardise Centrally in packages/core — Never Allow Override"]
+        C1["Config schema version and overall structure"]
+        C2["Automation names and command syntax  /assign  /unassign  /blocked  /finalize"]
+        C3["Bot-comment markers for idempotency deduplication"]
+        C4["Idempotency logic and duplicate-write prevention"]
+        C5["Error categories and fail-closed defaults"]
+        C6["Release compatibility windows  30-day backward-compat guarantee"]
+        C7["Audit log format and structured JSON fields"]
+        C8["Webhook verification logic  HMAC-SHA256"]
+        C9["Rate-limit handling and exponential backoff in the Executor"]
+    end
+
+    subgraph PERREPO["Allow Per-Repo in .github/hiero-automation.yml — Validated by Zod Schema"]
+        R1["Label names and team handles per SDK"]
+        R2["Assignment limits  max_assignments: 1 or N"]
+        R3["GFI graduation cap  max_good_first_issue_completions: 5"]
+        R4["Skill hierarchy and prerequisite gates for assignment"]
+        R5["Enabled automations  enabled: true or false per module"]
+        R6["Doc links  DCO guide  assign guide  GPG guide  merge conflict guide"]
+        R7["Repo-specific message text and notification links"]
+        R8["Waiver team and maintainer team handles"]
+        R9["Account age thresholds  block labels  reminder schedules"]
+    end
+
+    subgraph EXAMPLE["Concrete Example — Same Code Path  Different Policy Parameters"]
+        CPP["C++ SDK Configuration\\nmax_assignments: 1\\nmax_good_first_issue_completions: 5\\nprerequisites: skill-beginner required\\nmaintainer_team: hiero-cpp-maintainers\\nblock_labels: in-progress  claimed"]
+        PY["Python SDK Configuration\\nFields omitted  permissive defaults applied\\nmaintainer_team: hiero-py-maintainers\\nNo prerequisite gates configured"]
+        CORE2["Same runAssign code path in packages/core\\nserves both SDKs with zero code duplication\\nCore handles the decision shape and logic\\nPer-repo config supplies the policy parameters\\nWhen Python and C++ diverge on a value\\nthat value becomes repo-specific config\\nnever hardcoded into packages/core"]
+    end
+
+    RULE["Classification Rule of Thumb\\nCommon behaviour  centralise in core module\\nRepo policy  express as protected config validated by Zod\\nOne-off security constraint  keep strictly local forever\\nConfig expresses policy not code\\nRepositories cannot inject behaviour through config"]
+
+    CENTRAL -->|"decision shape and logic"| CORE2
+    PERREPO -->|"policy parameters"| CORE2
+    CPP -->|"per-repo config"| CORE2
+    PY -->|"per-repo config"| CORE2
+    RULE -.->|"governs split"| CENTRAL
+    RULE -.->|"governs split"| PERREPO`,
     diagramCaption:
       "Two surfaces, one schema. The schema is the contract — invalid input never reaches the API.",
     callouts: [
@@ -383,22 +508,39 @@ export const QUESTIONS: Question[] = [
     pullQuote:
       "Give contributors useful work without making maintainers triage risky rewrites.",
     youtubeUrl: null,
-    mermaid: `graph TD
-  Backlog["Phase-Gated Issue Backlog\n(Architecture as community surface)"]
-  Backlog --> L1["architecture-doc\nContext diagrams, boundary docs, config schema"]
-  Backlog --> L2["fixture\nGolden test cases for policy module behaviour"]
-  Backlog --> L3["schema\nConfig schema sections and validation rules"]
-  Backlog --> L4["policy-module\nPolicy module implementation per phase"]
-  Backlog --> L5["security-review\nThreat model, permission audit, dedup review"]
-  Backlog --> L6["rollout-doc\nAdoption guides, canary steps, rollback plans"]
-  L1 --> Gate["Phase Gate Review\nMentor and maintainer review evidence\nExit criteria verified before next phase opens"]
-  L2 --> Gate
-  L3 --> Gate
-  L4 --> Gate
-  L5 --> Gate
-  L6 --> Gate
-  Gate --> PR["Reviewable PR\nUnit tests + Schema tests\nSecurity checklist + Maintainer approval"]
-  PR --> Merge["Merge to main\nAudit record updated\nNext phase issues opened"]`,
+    mermaid: `flowchart TD
+    subgraph LABELS["Skill-Based Issue Labels — Risk-Tiered Access"]
+        L1["good-first-issue\\nDocs  Fixtures  No production risk\\nSafe for any community contributor immediately"]
+        L2["beginner\\nTests  Samples  Config examples"]
+        L3["intermediate\\nAdapters  Config extensions  Canary support"]
+        L4["advanced\\nSecurity pilots  C++ investigation"]
+        L5["maintainer-only\\nNEVER open to community\\nProduction behaviour changes\\nPrivileged config  SDK security controls"]
+    end
+
+    subgraph BACKLOG["Phased Community Issue Backlog"]
+        PH0["Phase 0 — Safe to Open\\nArchitecture ADR for listener  normalizer  router  dispatcher\\nConfig engine design document\\nComponent responsibility table review\\nFinal architecture decisions stay maintainer-owned"]
+        PH1["Phase 1 — Safe to Open\\nConfig schema sections with types and defaults\\nAudit log format specification\\nSecurity review checklist  webhook verification  idempotency\\nUnit test scaffolding and fixtures\\nOfficial ownership and release control stay maintainer-owned"]
+        PH2["Phase 2 — Safe to Open\\n/assign command parser tests\\nIssue eligibility fixture collection\\nGolden case conversion from real Python and C++ examples\\nUpstream /assign production change stays maintainer-owned"]
+        PH3["Phase 3 — Safe to Open\\nGuard fixture tests  account age  max assignments  prerequisites\\nDry-run review checklist\\nAdoption checklist polishing\\nWrite-mode pilot stays maintainer-owned"]
+        PH4["Phase 4 — Safe to Open\\nPR quality fixture collection\\nDCO check unit tests\\nConventional title parser tests\\nLinked issue validator tests\\nPR quality write pilot stays maintainer-owned"]
+        PH5["Phase 5 — Safe to Open\\nLifecycle module fixture conversion\\nProgression skill level specification\\nReview process label inventory\\nSimple before and after docs\\nProduction lifecycle behaviour stays maintainer-owned"]
+        PH6["Phase 6 — Safe to Open\\nPer-SDK adoption checklist\\nDemo and onboarding documentation\\nSandbox walkthrough guide\\nPer-repo production rollout stays maintainer-owned"]
+    end
+
+    FIRST["FIRST SAFE BATCH — Open Immediately\\n1  /assign behaviour matrix  Python vs C++ guard comparison\\n2  /assign golden fixtures and parity tests\\n3  Full-SHA pinning policy documentation\\n4  Schema compatibility and config versioning contract\\n5  SDK caller adoption checklist for maintainers\\n6  Audit log format specification\\n7  Security review checklist  webhook verification  config trust  idempotency\\n8  Sandbox repository walkthrough for /assign and audit log output"]
+
+    RFC["RFC PER AUTOMATION MIGRATION\\nEach RFC states: reusable logic  repo-local boundary\\npolicy config  fixtures  rollback plan  owner\\nNo production behaviour change without:\\nDry-run proof  Parity tests green\\nSecurity checklist complete  Maintainer approval\\nSmall reviewable PRs only"]
+
+    PROG["BUILT-IN CONTRIBUTOR PROGRESSION\\ngood-first-issue  beginner  intermediate\\nPrerequisite gates and GFI graduation cap enforced by the App itself\\nApp automates the contributor onboarding funnel\\nContributors grow through progressively harder tasks\\nApp does not just automate maintainer work\\nIt actively develops the contributor pipeline"]
+
+    DEFER["ISSUES TO DEFER UNTIL LATER\\nFull C++ lifecycle migration before Phase 4 mapping complete\\nReview-sync state machine before app shell stable through Phase 3\\nProduction GitHub App hosting at scale before Phase 3\\nAny issue that changes contributor-facing behaviour\\nbefore Python and C++ behaviour matrix is agreed"]
+
+    LABELS --> BACKLOG
+    PH0 --> PH1 --> PH2 --> PH3 --> PH4 --> PH5 --> PH6
+    FIRST --> RFC
+    RFC --> PROG
+    BACKLOG --> FIRST
+    PROG -.->|"do not open yet"| DEFER`,
     diagramCaption:
       "Phase-gated community issue backlog. Each phase opens a new set of labelled issues. Issues advance only after phase exit criteria pass.",
     body: `
@@ -429,21 +571,58 @@ export const QUESTIONS: Question[] = [
     pullQuote:
       "Architecture and App Shell first — /assign next, one module at a time, gated by exit criteria.",
     youtubeUrl: null,
-    mermaid: `quadrantChart
-  title Risk vs Value of Development Approaches
-  x-axis Low Risk --> High Risk
-  y-axis Low Value --> High Value
-  quadrant-1 Do First
-  quadrant-2 Do With Care
-  quadrant-3 Deprioritise
-  quadrant-4 Avoid
-  Architecture and App Shell: [0.15, 0.9]
-  Fixtures and schema: [0.15, 0.7]
-  assign sandbox pilot: [0.25, 0.85]
-  PR Quality module after assign: [0.3, 0.75]
-  Immediate production writes: [0.85, 0.4]
-  Skip architecture entirely: [0.95, 0.2]
-  Start with review-sync: [0.75, 0.45]`,
+    mermaid: `flowchart TD
+    Q{"How many weeks should be\\nallocated to architecture\\nbefore development begins?"}
+
+    OPT1["OPTION A — Skip Architecture\\nRISK LEVEL: HIGH  NOT RECOMMENDED\\nReplicates the existing problem exactly\\nIndependent evolution continues across repos\\nInconsistent security assumptions persist\\nNo parity baseline established\\nNo rollback plans designed in\\nSame fragmented state as before"]
+
+    OPT2["OPTION B — Full Architecture Freeze\\nRISK LEVEL: MEDIUM  NOT RECOMMENDED\\nDelays reversible work unnecessarily\\nFixtures  schema  dry-run adapters carry no production risk\\nThese can begin in parallel without production writes\\nFull freeze wastes the early program window"]
+
+    OPT3["OPTION C — 2-Week Architecture\\nPlus Reversible Work Running in Parallel\\nRISK LEVEL: LOW  RECOMMENDED\\nArchitecture gates only production writes\\nReversible and safe work runs concurrently\\nNo upstream SDK repo affected before gates close\\nProduction correctness is the goal  not speed"]
+
+    Q --> OPT1
+    Q --> OPT2
+    Q --> OPT3
+
+    subgraph WK1["Week 1 — Architecture Foundations"]
+        W1A["App shell skeleton and boundary definitions"]
+        W1B["Threat model and security checklist"]
+        W1C["Config schema initial sections  setup and assignment in Zod"]
+        W1D["Hosting model ADR — Cloud Run vs Railway vs stateless function\\nThis decision is required before Phase 1\\nDetermines token cache  dedup store  and concurrency model"]
+        W1E["Component responsibility table and boundary map"]
+    end
+
+    subgraph WK2["Week 2 — Architecture Continues Plus Safe Reversible Work Begins"]
+        W2A["/assign behaviour maps and guard matrix\\nPython vs C++ comparison  document divergences"]
+        W2B["Rollback plan per phase documented before work begins"]
+        W2C["Community issue backlog structured and labelled by phase"]
+        W2D["/assign parity fixtures  Python and C++ golden cases\\nassign success  account age fail  already assigned  blocking label"]
+        W2E["packages/core skeleton  module registry interface defined"]
+    end
+
+    subgraph SAFE["Safe to Begin Now — Zero Production Risk"]
+        S1["App shell  config engine  audit logger"]
+        S2["/assign module in packages/core as pure function"]
+        S3["Parity fixtures and architecture documentation"]
+        S4["Security tests and config schema tests"]
+        S5["Community issue batch 1 opened  fixtures  docs  schema"]
+    end
+
+    subgraph WAIT["Must Wait — Gated on Architecture and Gate Completion"]
+        W1["Upstream production enablement in any SDK repo"]
+        W2["SDK security control changes"]
+        W3["Write-mode pilot in any live repository"]
+        W4["C++ behaviour changes before mapping complete"]
+        W5["Any production behaviour change without parity  dry-run  sign-off"]
+    end
+
+    DONE["PHASE 0 ALREADY COMPLETE\\nPython fork canary  run proof demonstrating feasibility\\nCentral repo CI  CI proof with green pipeline\\nProbot adapter  68 passing tests across three workspaces\\npackages/core: 55 tests  Probot: 10 tests  Actions adapter: 3 tests"]
+
+    OPT3 --> WK1
+    WK1 --> WK2
+    WK2 --> SAFE
+    WK2 --> WAIT
+    WK2 --> DONE`,
     diagramCaption:
       "Risk-versus-value placement of every option. Architecture + App Shell + /assign sandbox pilot lives top-left. Starting with review-sync is high-risk.",
     body: `
