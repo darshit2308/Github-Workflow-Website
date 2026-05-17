@@ -108,40 +108,38 @@ export const QUESTIONS: Question[] = [
     fullSpan: true,
     youtubeUrl: null,
     mermaid: `flowchart LR
-    GH["GitHub Repositories\\nWebhook Events"]
+    GH["GitHub Repositories"]
 
-    subgraph APP["   Zone 1 — GitHub App  sdk-automations   "]
-        L["Webhook Listener\\nHMAC-SHA256 Verify\\nInstallation ID Check\\nDelivery ID Dedup"]
-        N["Event Normalizer\\nRaw Payload to NormalizedEvent\\nGitHub API-change isolation"]
-        R["Router\\nDeclarative Route Registration\\n/assign to AssignmentCommand"]
-        CE["Config Engine\\nZod Schema Validation\\nhiero-automation.yml\\nFail closed on invalid"]
-        D["Dispatcher\\nModule Registry Lookup\\nConfig Loader\\nPolicy Module Selector"]
-        PM["Policy Modules\\nPure Functions  No IO\\nAssignment  PR Quality\\nIssue Lifecycle  PR Lifecycle\\nProgression  Review"]
-        E["GitHub API Executor\\nIdempotent Writes\\nInstallation-scoped Token\\nExponential Backoff\\nBot-marker Checks"]
-        AL["Audit Logger  Pino\\nAppend-Only  Structured JSON\\nEvery Decision Recorded\\n90-day Retention"]
+    subgraph APP["Zone 1 — GitHub App"]
+        L["Webhook Listener\\nHMAC verify · dedup"]
+        N["Event Normalizer\\nNormalizedEvent model"]
+        R["Router\\nDeclarative routes"]
+        CE["Config Engine\\nZod · fail closed"]
+        D["Dispatcher\\nModule registry"]
+        PM["Policy Modules\\nPure functions · no I/O"]
+        E["Executor\\nIdempotent · scoped token"]
+        AL["Audit Logger\\nRecords every stage"]
+    end
+
+    subgraph ACT["Zone 4 — Actions Adapter"]
+        AA["GitHub Actions Adapter\\nScheduled · Batch · Canary"]
     end
 
     GH -->|"HTTPS Webhook"| L
+    GH -->|"Config read\\n(default branch)"| CE
+    GH -->|"SDK workflow\\ncalls shared action"| AA
+
     L --> N
     N --> R
     R --> D
     CE -->|"Validated Config"| D
     D --> PM
     PM -->|"ApprovedOperation[]"| E
-    E -->|"GitHub API Writes"| GH
-    L -->|"audit"| AL
-    N -->|"audit"| AL
-    R -->|"audit"| AL
-    D -->|"audit"| AL
-    PM -->|"audit"| AL
-    E -->|"audit"| AL
+    E -->|"GitHub API writes"| GH
 
-    subgraph ACT["Zone 4 — Actions Adapter  Batch / Compatibility Only"]
-        AA["GitHub Actions Adapter\\nScheduled  Batch  Canary\\nCalls same packages/core"]
-    end
-
-    GH -->|"testing trigger"| ACT
-    ACT -->|"packages/core calls"| PM`,
+    AA -->|"core module calls"| D
+    AA -.->|"audit"| AL
+    D -.->|"audit"| AL`,
     diagramCaption:
       "Eight-component GitHub App pipeline. Config Engine and Audit Logger are crosscutting. No module writes to GitHub directly — only the Executor does.",
     callouts: [
