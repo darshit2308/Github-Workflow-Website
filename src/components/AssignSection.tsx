@@ -16,9 +16,9 @@ const WHY_ASSIGN_FIRST = [
   },
   {
     icon: "✅",
-    title: "Sophie's Explicit Direction",
+    title: "Our Explicit Direction",
     description:
-      "Sophie identified /assign as the first candidate. Review-sync is valuable but becomes the second or third module after the app shell is proven. Deprioritising it is not a technical decision — it's architectural discipline.",
+      "We identified /assign as the first candidate. Review-sync is valuable but becomes the second or third module after the app shell is proven. Deprioritising it is not a technical decision — it's architectural discipline.",
   },
 ];
 
