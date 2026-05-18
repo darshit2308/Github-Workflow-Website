@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { ChevronDown, GitBranch, Youtube } from "lucide-react";
+import { ChevronDown, GitBranch } from "lucide-react";
 import type { Question } from "@/data/questions";
 import { CriterionTag } from "./CriterionTag";
 import { InvariantBox, WarnBox } from "./Callouts";
-import { YoutubeModal } from "./YoutubeModal";
+
 import { MermaidModal } from "./MermaidModal";
 import { useReveal } from "@/hooks/useReveal";
 
@@ -15,7 +15,6 @@ export function QuestionCard({
   index: number;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [yt, setYt] = useState(false);
   const [diag, setDiag] = useState(false);
   const ref = useReveal<HTMLElement>((index % 6) * 60);
 
@@ -54,14 +53,6 @@ export function QuestionCard({
         <hr className="my-6 border-surface-border" />
 
         <div className="flex flex-wrap items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setYt(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[0.8125rem] font-medium text-hiero-blue transition-smooth hover:bg-surface-subtle"
-          >
-            <Youtube size={15} />
-            Watch explanation
-          </button>
           <button
             type="button"
             onClick={() => setDiag(true)}
@@ -110,12 +101,6 @@ export function QuestionCard({
           </div>
         </div>
       </div>
-
-      <YoutubeModal
-        question={question}
-        open={yt}
-        onClose={() => setYt(false)}
-      />
       <MermaidModal
         question={question}
         open={diag}

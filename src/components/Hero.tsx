@@ -1,4 +1,4 @@
-import { ArrowDown, ExternalLink, FileText } from "lucide-react";
+import { ArrowDown, ExternalLink, FileText, Youtube } from "lucide-react";
 import { SITE, HERO_STATS } from "@/data/siteData";
 
 export function Hero() {
@@ -84,6 +84,15 @@ export function Hero() {
           className="anim-fade-up mt-10 flex flex-wrap items-center justify-center gap-3"
           style={{ animationDelay: "360ms" }}
         >
+          <a
+            href="https://youtu.be/0LkjQ7UJkV0"
+            target="_blank"
+            rel="noreferrer"
+            className="group inline-flex items-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm font-semibold text-white shadow-card transition-smooth hover:shadow-elevated hover:scale-[1.02]"
+          >
+            <Youtube size={16} className="transition-transform group-hover:scale-110" />
+            Watch Architecture Video
+          </a>
           <a
             href="#thesis"
             className="group inline-flex items-center gap-2 rounded-xl bg-hiero-blue px-6 py-3 text-sm font-semibold text-white shadow-card transition-smooth hover:shadow-elevated hover:scale-[1.02]"
