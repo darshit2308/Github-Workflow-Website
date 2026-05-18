@@ -20,9 +20,7 @@ export function Footer() {
         <div className="grid gap-10 sm:grid-cols-3">
           {/* Column 1 — Identity */}
           <div>
-            <div className="font-serif text-xl gradient-text font-bold">
-              Darshit Khandelwal
-            </div>
+            <div className="font-serif text-xl gradient-text font-bold">Darshit Khandelwal</div>
             <div className="mt-2 text-sm text-text-secondary">{SITE.mentorship}</div>
             <div className="text-sm text-text-secondary">{SITE.project}</div>
             <div className="mt-3 text-[0.8rem] text-text-muted">{SITE.email}</div>
@@ -58,10 +56,33 @@ export function Footer() {
             </div>
             <ul className="mt-3 space-y-2.5">
               <li>{link("https://arc42.org/", "arc42 architecture framework")}</li>
-              <li>{link("https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions", "GitHub Actions security guide")}</li>
-              <li>{link("https://docs.stepsecurity.io/harden-runner", "StepSecurity Harden-Runner")}</li>
-              <li>{link("https://github.com/darshit2308/hiero-workflow-probot", "Prototype: hiero-workflow-probot")}</li>
-              <li>{link("https://github.com/darshit2308/heiro-probot-official", "Prototype: heiro-probot-official")}</li>
+              <li>
+                {link(
+                  "https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions",
+                  "GitHub Actions security guide",
+                )}
+              </li>
+              <li>
+                {link("https://docs.stepsecurity.io/harden-runner", "StepSecurity Harden-Runner")}
+              </li>
+              <li>
+                {link(
+                  "https://github.com/darshit2308/hiero-workflow-probot",
+                  "Prototype: hiero-workflow-probot",
+                )}
+              </li>
+              <li>
+                {link(
+                  "https://github.com/darshit2308/heiro-probot-official",
+                  "Prototype: heiro-probot-official",
+                )}
+              </li>
+              <li>
+                {link(
+                  "https://github.com/darshit2308/sdk-automations",
+                  "Prototype: sdk-automations",
+                )}
+              </li>
             </ul>
           </div>
         </div>

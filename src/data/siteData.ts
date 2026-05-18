@@ -22,7 +22,7 @@ export const SITE = {
 export const HERO_STATS = [
   { value: "13+", label: "Merged PRs" },
   { value: "5", label: "Repositories" },
-  { value: "2", label: "Working Prototypes" },
+  { value: "3", label: "Working Prototypes" },
   { value: "7", label: "Phased Roadmap" },
 ];
 
@@ -466,7 +466,9 @@ export interface Prototype {
   id: string;
   name: string;
   repoUrl: string;
-  demoUrl: string;
+  demoUrl?: string;
+  demoLabel?: string;
+  demoIcon?: "play" | "external";
   focus: string;
   pipelineProof: string;
   features: string[];
@@ -507,6 +509,26 @@ export const PROTOTYPES: Prototype[] = [
     ],
     description:
       "Validates that Hiero's tightly coupled workflow scripts can survive outside GitHub Actions. Successfully ported the C++ SDK's on-comment logic into a Node.js Probot environment — proving the first product slice works end-to-end.",
+  },
+  {
+    id: "p3",
+    name: "sdk-automations",
+    repoUrl: "https://github.com/darshit2308/sdk-automations",
+    demoUrl: "https://github.com/darshit2308/sdk-automations#-system-architecture",
+    demoLabel: "View Architecture",
+    demoIcon: "external",
+    focus: "Hybrid Orchestration Proof",
+    pipelineProof:
+      "Validates the hybrid App + Actions model: HMAC-verified webhooks, config-driven routing, and sanitized dispatch to GitHub Actions.",
+    features: [
+      "Centralized Probot orchestration with webhook verification",
+      "Per-repo .github/hiero-workflow.yml configuration",
+      "Hybrid dispatcher to GitHub Actions for heavy checks",
+      "PR validation pipeline (DCO, GPG, size warnings)",
+      "Structured audit logging for workflow decisions",
+    ],
+    description:
+      "Demonstrates the centralized workflow engine that replaces duplicated per-repo scripts with one audited control plane, while keeping execution isolated in GitHub Actions.",
   },
 ];
 

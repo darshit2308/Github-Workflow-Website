@@ -21,8 +21,9 @@ export function PrototypesSection() {
             Working Prototypes & Achievements
           </h2>
           <p className="mx-auto mt-4 max-w-[620px] text-[1rem] leading-relaxed text-text-secondary">
-            These two prototypes are not the product. They are <strong>proof of concept validations</strong> that prove specific
-            pipeline mechanics work before the production app shell is built.
+            These three prototypes are not the product. They are{" "}
+            <strong>proof of concept validations</strong> that prove specific pipeline mechanics
+            work before the production app shell is built.
           </p>
         </div>
 
@@ -48,7 +49,9 @@ export function PrototypesSection() {
                 className="group rounded-2xl border border-surface-border bg-white p-5 shadow-card transition-smooth hover:-translate-y-1 hover:shadow-card-hover"
               >
                 <div className="text-[0.75rem] font-bold text-hiero-blue">{a.result}</div>
-                <div className="mt-1 text-[1rem] font-semibold text-hiero-navy group-hover:text-hiero-blue transition-smooth">{a.name}</div>
+                <div className="mt-1 text-[1rem] font-semibold text-hiero-navy group-hover:text-hiero-blue transition-smooth">
+                  {a.name}
+                </div>
                 <p className="mt-1.5 text-[0.82rem] text-text-secondary">{a.description}</p>
                 <div className="mt-2 inline-flex items-center gap-1 text-[0.75rem] font-medium text-hiero-blue">
                   <ExternalLink size={11} /> View project
@@ -70,9 +73,14 @@ function PrototypeCard({
   index: number;
 }) {
   const ref = useReveal<HTMLDivElement>(index * 100);
+  const DemoIcon = p.demoIcon === "external" ? ExternalLink : Play;
+  const demoLabel = p.demoLabel ?? "Watch Demo";
 
   return (
-    <div ref={ref} className="reveal rounded-2xl border border-surface-border bg-white shadow-card overflow-hidden">
+    <div
+      ref={ref}
+      className="reveal rounded-2xl border border-surface-border bg-white shadow-card overflow-hidden"
+    >
       {/* Header */}
       <div className="border-b border-surface-border bg-surface-subtle p-5">
         <div className="flex items-center gap-2 mb-1">
@@ -114,14 +122,16 @@ function PrototypeCard({
           >
             <Github size={13} /> Repository
           </a>
-          <a
-            href={p.demoUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-hiero-blue px-3 py-1.5 text-[0.8rem] font-medium text-white transition-smooth hover:bg-hiero-blue-mid"
-          >
-            <Play size={13} /> Watch Demo
-          </a>
+          {p.demoUrl ? (
+            <a
+              href={p.demoUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-hiero-blue px-3 py-1.5 text-[0.8rem] font-medium text-white transition-smooth hover:bg-hiero-blue-mid"
+            >
+              <DemoIcon size={13} /> {demoLabel}
+            </a>
+          ) : null}
         </div>
       </div>
     </div>
