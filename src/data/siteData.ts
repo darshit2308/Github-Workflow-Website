@@ -15,7 +15,7 @@ export const SITE = {
   fivePagePdf: "/documents/5-page.pdf",
   applicationPdf: "/documents/sophie.pdf",
   taskSolutionPdf: "/documents/taskSolution.pdf",
-  preInterviewTaskPdf: "/documents/Pre-Interview Task - Hiero Workflow App (1).pdf",
+  preInterviewTaskPdf: "/documents/taskSolution.pdf",
 };
 
 // ── Hero stats ──────────────────────────────────────────────
